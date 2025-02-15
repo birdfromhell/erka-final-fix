@@ -11,8 +11,8 @@ class Product extends Model
 
     protected $fillable = [
         'code', 'Type_barcode', 'name', 'cost', 'price', 'unit_id', 'unit_sale_id', 'unit_purchase_id',
-        'stock_alert', 'category_id', 'sub_category_id', 'is_variant','is_imei',
-        'tax_method', 'image', 'brand_id', 'is_active', 'note','type'
+        'stock_alert', 'category_id', 'sub_category_id', 'is_variant','is_imei','is_promo','promo_price','promo_start_date','promo_end_date',
+        'tax_method', 'image', 'brand_id', 'is_active', 'note','qty_min'
     ];
 
     protected $casts = [
@@ -28,12 +28,15 @@ class Product extends Model
         'cost' => 'double',
         'price' => 'double',
         'stock_alert' => 'double',
+        'qty_min' => 'double',
         'TaxNet' => 'double',
+        'is_promo' => 'integer',
+        'promo_price' => 'double',
     ];
 
-    public function ProductVariant()
+    public function variants()
     {
-        return $this->belongsTo('App\Models\ProductVariant');
+        return $this->hasMany(ProductVariant::class);
     }
 
     public function PurchaseDetail()
@@ -58,30 +61,22 @@ class Product extends Model
 
     public function unit()
     {
-        return $this->belongsTo('App\Models\Unit', 'unit_id');
+        return $this->belongsTo(Unit::class, 'unit_id');
     }
 
     public function unitPurchase()
     {
-        return $this->belongsTo('App\Models\Unit', 'unit_purchase_id');
+        return $this->belongsTo(Unit::class, 'unit_purchase_id');
     }
 
     public function unitSale()
     {
-        return $this->belongsTo('App\Models\Unit', 'unit_sale_id');
+        return $this->belongsTo(Unit::class, 'unit_sale_id');
     }
 
     public function brand()
     {
-        return $this->belongsTo('App\Models\Brand');
+        return $this->belongsTo(Brand::class);
     }
-
-     // Relationship for products that are combined in a combo
-     public function combinedProducts()
-     {
-         return $this->belongsToMany(Product::class, 'combined_products', 'product_id', 'combined_product_id')
-                     ->withPivot('quantity')
-                     ->withTimestamps();
-     }
 
 }

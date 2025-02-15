@@ -2,147 +2,169 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Account;
-use App\Models\Role;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use App\Models\Account;
+use Carbon\Carbon;
 
-class AccountController extends BaseController
+class AccountController extends Controller
 {
-
-    //-------------- Get All Account ---------------\\
-
-    public function index(Request $request)
+    /**
+     * Display a listing of the resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function index()
     {
-        $this->authorizeForUser($request->user('api'), 'view', Account::class);
-        // How many items do you want to display.
-        $perPage = $request->limit;
-        $pageStart = \Request::get('page', 1);
-        // Start displaying items from this number;
-        $offSet = ($pageStart * $perPage) - $perPage;
-        $order = $request->SortField;
-        $dir = $request->SortType;
+        $user_auth = auth()->user();
+		if ($user_auth->can('account_view')){
 
-        // Check If User Has Permission View  All Records
-        $Accounts= Account::where('deleted_at', '=', null)
-            
-            ->where(function ($query) use ($request) {
-                return $query->when($request->filled('search'), function ($query) use ($request) {
-                    return $query->where('account_num', 'LIKE', "%{$request->search}%")
-                    ->orWhere('account_name', 'LIKE', "%{$request->search}%");
-                });
-            });
-
-        $totalRows = $Accounts->count();
-        if($perPage == "-1"){
-            $perPage = $totalRows;
+            $accounts = Account::where('deleted_at', '=', null)->orderBy('id', 'desc')->get();
+            return view('accounting.accounts.account_list', compact('accounts'));
         }
-        $account_data = $Accounts->offset($offSet)
-            ->limit($perPage)
-            ->orderBy($order, $dir)
-            ->get();
-
-        $data = [];
-        foreach ($account_data as $account) {
-
-            $item['id'] = $account->id;
-            $item['account_num'] = $account->account_num;
-            $item['account_name'] = $account->account_name;
-            $item['balance'] = $account->balance;
-            $item['note'] = $account->note;
-           
-            $data[] = $item;
-        }
-
-        return response()->json([
-            'accounts' => $data,
-            'totalRows' => $totalRows,
-        ]);
-
+        return abort('403', __('You are not authorized'));
     }
 
-    //-------------- Store New Account ---------------\\
+    /**
+     * Show the form for creating a new resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function create()
+    {
+        $user_auth = auth()->user();
+		if ($user_auth->can('account_add')){
 
+            return view('accounting.accounts.create_account');
+        }
+        return abort('403', __('You are not authorized'));
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
     public function store(Request $request)
     {
-        $this->authorizeForUser($request->user('api'), 'create', Account::class);
+        $user_auth = auth()->user();
+		if ($user_auth->can('account_add')){
 
-        request()->validate([
-            'account_num' => 'required',
-            'account_name' => 'required',
-            'initial_balance' => 'required',
-        ]);
+            $this->validate($request, [
+                'account_num'      => 'required|string|max:255',
+                'account_name'       => 'required|string|max:255',
+                'initial_balance'        => 'required|numeric',
+            ]);
 
-        Account::create([
-            'account_num' => $request['account_num'],
-            'account_name' => $request['account_name'],
-            'initial_balance' => $request['initial_balance'],
-            'balance' => $request['initial_balance'],
-            'note' => $request['note'],
-        ]);
+            Account::create([
+                'account_num'      => $request['account_num'],
+                'account_name'       => $request['account_name'],
+                'initial_balance'        => $request['initial_balance'],
+                'note'        => $request['note'],
+            ]);
 
-        return response()->json(['success' => true], 200);
+            return response()->json(['success' => true]);
+
+        }
+        return abort('403', __('You are not authorized'));
     }
 
-    //------------ function show -----------\\
-
-    public function show($id){
-    //
-    
+    /**
+     * Display the specified resource.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function show($id)
+    {
+        //
     }
 
-    //-------------- Update Account ---------------\\
+    /**
+     * Show the form for editing the specified resource.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function edit($id)
+    {
+        $user_auth = auth()->user();
+		if ($user_auth->can('account_edit')){
 
+            $account = Account::where('deleted_at', '=', null)->findOrFail($id);
+            return view('accounting.accounts.edit_account', compact('account'));
+
+        }
+        return abort('403', __('You are not authorized'));
+
+
+    }
+
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
     public function update(Request $request, $id)
     {
-        $this->authorizeForUser($request->user('api'), 'update', Account::class);
-        $Account = Account::findOrFail($id);
+        $user_auth = auth()->user();
+		if ($user_auth->can('account_edit')){
 
-        request()->validate([
-            'account_num' => 'required',
-            'account_name' => 'required',
-        ]);
+            $this->validate($request, [
+                'account_num'      => 'required|string|max:255',
+                'account_name'       => 'required|string|max:255',
+            ]);
 
-        $Account->update([
-            'account_num' => $request['account_num'],
-            'account_name' => $request['account_name'],
-            'note' => $request['note'],
-        ]);
+            Account::whereId($id)->update([
+                'account_num'      => $request['account_num'],
+                'account_name'       => $request['account_name'],
+                'note'        => $request['note'],
+            ]);
 
-        return response()->json(['success' => true], 200);
+            return response()->json(['success' => true]);
 
+        }
+        return abort('403', __('You are not authorized'));
     }
 
-    //-------------- Delete Account ---------------\\
-
-    public function destroy(Request $request, $id)
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function destroy($id)
     {
-        $this->authorizeForUser($request->user('api'), 'delete', Account::class);
-        $Account = Account::findOrFail($id);
+        $user_auth = auth()->user();
+		if ($user_auth->can('account_delete')){
 
-        $Account->update([
-            'deleted_at' => Carbon::now(),
-        ]);
-
-        return response()->json(['success' => true], 200);
-    }
-
-    //-------------- Delete by selection  ---------------\\
-
-    public function delete_by_selection(Request $request)
-    {
-        $this->authorizeForUser($request->user('api'), 'delete', Account::class);
-        $selectedIds = $request->selectedIds;
-
-        foreach ($selectedIds as $account_id) {
-            $Account = Account::findOrFail($account_id);
-
-            $Account->update([
+            Account::whereId($id)->update([
                 'deleted_at' => Carbon::now(),
             ]);
+
+            return response()->json(['success' => true]);
         }
-        return response()->json(['success' => true], 200);
+        return abort('403', __('You are not authorized'));
     }
+
+        //-------------- Delete by selection  ---------------\\
+
+        public function delete_by_selection(Request $request)
+        {
+           $user_auth = auth()->user();
+           if($user_auth->can('account_delete')){
+               $selectedIds = $request->selectedIds;
+       
+               foreach ($selectedIds as $account_id) {
+                    Account::whereId($account_id)->update([
+                        'deleted_at' => Carbon::now(),
+                    ]);
+               }
+               return response()->json(['success' => true]);
+           }
+           return abort('403', __('You are not authorized'));
+        }
 
 }

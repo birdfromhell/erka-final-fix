@@ -10,7 +10,7 @@ class PurchaseReturn extends Model
 
     protected $fillable = [
         'date', 'Ref', 'GrandTotal',
-        'user_id', 'discount', 'shipping',
+        'user_id', 'discount', 'shipping','discount_type','discount_percent_total',
         'warehouse_id','purchase_id', 'provider_id', 'notes', 'TaxNet', 'tax_rate', 'statut',
         'paid_amount', 'payment_statut', 'created_at', 'updated_at', 'deleted_at',
     ];
@@ -22,6 +22,7 @@ class PurchaseReturn extends Model
         'provider_id' => 'integer',
         'warehouse_id' => 'integer',
         'discount' => 'double',
+        'discount_percent_total' => 'double',
         'shipping' => 'double',
         'TaxNet' => 'double',
         'tax_rate' => 'double',

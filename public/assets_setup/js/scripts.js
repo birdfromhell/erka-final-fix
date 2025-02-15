@@ -31,17 +31,16 @@ $(function() {
                     $('#errormsg').html(data.Error);
                     $('#errormsg').addClass('danger').addClass('alert-danger');
                     $('#testdb').removeClass('btn-dark').addClass('btn-danger');
-                    $('#testdb').html('Test Connection <i class="fa fa-times "></i>');
                     $('.next_step').removeClass('d-block').addClass('d-none');
+                    $('#testdb').html('Test Connection <i class="fa fa-times "></i>');
                 }else
                 {
                     $('#errormsg').html(data.Success);
                     $('#errormsg').addClass('success').addClass('alert-success');
                     $('#testdb').removeClass('btn-dark').addClass('btn-success');
-                    $('#testdb').html('Test Connection <i class="fa fa-check-circle-o "></i>');
                     $('.next_step').removeClass('d-none').addClass('d-block');
+                    $('#testdb').html('Test Connection <i class="fa fa-check-circle-o "></i>');
                 }
-               
                 $('#errormsg').addClass('text-white').addClass('p-1');
             },
             statusCode: {
@@ -79,11 +78,5 @@ $(function() {
     $('#update_db').on("click", function(e) {
         $('.loader').removeClass('d-none').addClass('d-block');
         $('#update_db').removeClass('d-block').addClass('d-none');
-        // e.preventDefault();
-        // $.ajax({
-        //     type: 'post',
-        //     url: '/update/lastStep',
-        //     // headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
-        // });
     });
 });

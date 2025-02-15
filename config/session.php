@@ -92,34 +92,15 @@ return [
     | Session Cache Store
     |--------------------------------------------------------------------------
     |
-    | When using the "apc", "memcached", or "dynamodb" session drivers you may
+    | While using one of the framework's cache driven session backends you may
     | list a cache store that should be used for these sessions. This value
     | must match with one of the application's configured cache "stores".
     |
+    | Affects: "apc", "dynamodb", "memcached", "redis"
+    |
     */
 
-    // 'store' => env('SESSION_STORE', null),
-    'store' => [
-        'driver' => env('SESSION_DRIVER', 'file'),
-        'lifetime' => env('SESSION_LIFETIME', 120),
-        'expire_on_close' => false,
-        'encrypt' => false,
-        'files' => storage_path('framework/sessions'),
-        'connection' => null,
-        'table' => 'store_sessions',
-        'store' => null,
-        'lottery' => [2, 100],
-        'cookie' => env(
-            'SESSION_COOKIE',
-            Str::slug(env('APP_NAME', 'laravel'), '_').'_store_session'
-        ),
-        'path' => '/store',
-        'domain' => env('SESSION_DOMAIN', null),
-        'secure' => env('SESSION_SECURE_COOKIE'),
-        'http_only' => true,
-        'same_site' => 'lax',
-    ],
-    
+    'store' => env('SESSION_STORE', null),
 
     /*
     |--------------------------------------------------------------------------
@@ -183,11 +164,11 @@ return [
     |
     | By setting this option to true, session cookies will only be sent back
     | to the server if the browser has a HTTPS connection. This will keep
-    | the cookie from being sent to you if it can not be done securely.
+    | the cookie from being sent to you when it can't be done securely.
     |
     */
 
-    'secure' => env('SESSION_SECURE_COOKIE', null),
+    'secure' => env('SESSION_SECURE_COOKIE'),
 
     /*
     |--------------------------------------------------------------------------
@@ -209,9 +190,9 @@ return [
     |
     | This option determines how your cookies behave when cross-site requests
     | take place, and can be used to mitigate CSRF attacks. By default, we
-    | do not enable this as other CSRF protection services are in place.
+    | will set this value to "lax" since this is a secure default value.
     |
-    | Supported: "lax", "strict", "none"
+    | Supported: "lax", "strict", "none", null
     |
     */
 

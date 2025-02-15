@@ -9,7 +9,7 @@ class Quotation extends Model
     protected $dates = ['deleted_at'];
 
     protected $fillable = [
-        'date', 'Ref', 'client_id', 'GrandTotal', 'warehouse_id', 'user_id', 'statut',
+        'date', 'Ref', 'client_id', 'GrandTotal', 'warehouse_id', 'user_id', 'statut','discount_type','discount_percent_total',
         'notes', 'discount', 'shipping', 'TaxNet', 'tax_rate', 'created_at', 'updated_at', 'deleted_at',
     ];
 
@@ -19,6 +19,7 @@ class Quotation extends Model
         'client_id' => 'integer',
         'warehouse_id' => 'integer',
         'discount' => 'double',
+        'discount_percent_total' => 'double',
         'shipping' => 'double',
         'TaxNet' => 'double',
         'tax_rate' => 'double',

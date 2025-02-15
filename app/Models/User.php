@@ -2,14 +2,17 @@
 
 namespace App\Models;
 
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Passport\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, Notifiable;
+    use Notifiable , HasRoles;
     protected $dates = ['deleted_at'];
+
 
     /**
      * The attributes that are mass assignable.
@@ -17,7 +20,7 @@ class User extends Authenticatable
      * @var array
      */
     protected $fillable = [
-        'firstname', 'lastname', 'username', 'email', 'password', 'phone', 'statut', 'avatar', 'role_id','is_all_warehouses'
+        'username', 'email', 'password', 'status', 'avatar','role_users_id','is_all_warehouses'
     ];
 
     /**
@@ -36,37 +39,19 @@ class User extends Authenticatable
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'role_id' => 'integer',
-        'statut' => 'integer',
+        'role_users_id' => 'integer',
+        'status' => 'integer',
         'is_all_warehouses' => 'integer',
     ];
 
-    public function oauthAccessToken()
-    {
-        return $this->hasMany('\App\Models\OauthAccessToken');
-    }
 
-    public function roles()
-    {
-        return $this->belongsToMany(Role::class);
+    public function RoleUser()
+	{
+        return $this->hasone('Spatie\Permission\Models\Role','id',"role_users_id");
     }
-
-    public function assignRole(Role $role)
-    {
-        return $this->roles()->save($role);
-    }
-
-    public function hasRole($role)
-    {
-        if (is_string($role)) {
-            return $this->roles->contains('name', $role);
-        }
-        return !!$role->intersect($this->roles)->count();
-    }
-
+    
     public function assignedWarehouses()
     {
         return $this->belongsToMany('App\Models\Warehouse');
     }
-
 }

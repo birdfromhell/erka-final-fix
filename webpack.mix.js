@@ -1,5 +1,4 @@
-const mix = require('laravel-mix');
-
+const mix = require("laravel-mix");
 
 /*
  |--------------------------------------------------------------------------
@@ -12,24 +11,34 @@ const mix = require('laravel-mix');
  |
  */
 
-const MomentLocalesPlugin = require('moment-locales-webpack-plugin');
-const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+// mix.js('resources/js/app.js', 'public/js')
+//     .vue()
+//     .sass('resources/sass/app.scss', 'public/css');
 
+mix
+    /* CSS */
+    .js("resources/js/app.js", "public/js")
+    .sass("resources/sass/app.scss", "public/css")
+    .sass(
+        "resources/assets/styles/sass/themes/lite-purple.scss",
+        "public/assets/styles/css/themes/lite-purple.min.css"
+    );
+  
 
-mix.js('resources/src/main.js', 'public').js('resources/src/login.js', 'public')
-    .vue();
+/* JS */
 
-    mix.webpackConfig({
-        output: {
-          
-            filename:'js/[name].min.js',
-            chunkFilename: 'js/bundle/[name].[hash].js',
-          },
-        plugins: [
-            new MomentLocalesPlugin(),
-            new CleanWebpackPlugin({
-                cleanOnceBeforeBuildPatterns: ['./js/*']
-              }),
-        ]
-    });
+/* Laravel JS */
 
+mix.combine(
+    [
+        "resources/assets/js/vendor/jquery.min.js",
+        "resources/assets/js/vendor/bootstrap.bundle.min.js",
+        "resources/assets/js/vendor/perfect-scrollbar.min.js",
+    ],
+    "public/assets/js/common-bundle-script.js"
+);
+
+mix.js(["resources/assets/js/script.js"], "public/assets/js/script.js");
+mix.js(["resources/js/plugin-script/alpine-data.js"], "public/js/plugin-script/alpine-data.js");
+mix.js(["resources/js/plugin-script/alpine-store.js"], "public/js/plugin-script/alpine-store.js");
+mix.js(["resources/js/plugin-script/apexcharts.js"], "public/js/plugin-script/apexcharts.js");

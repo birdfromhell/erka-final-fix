@@ -48,7 +48,5 @@ class Migrate extends Command
     public function handle()
     {
         \Artisan::call('migrate:fresh --force');
-        Artisan::call('migrate' , ['--force' => true , '--path' => 'vendor/laravel/passport/database/migrations']);
-        \Artisan::call('passport:install');
     }
 }

@@ -1,6 +1,3 @@
-```bash
-php artisan config:cache
-php artisan config:clear
-php artisan migrate:fresh --force --seed
-php artisan passport:install --force
-```
+# Version 1.0 - 25-07-2023
+
+-   version 1.0 

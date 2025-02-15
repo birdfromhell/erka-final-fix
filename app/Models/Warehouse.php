@@ -11,6 +11,7 @@ class Warehouse extends Model
     protected $fillable = [
         'name', 'mobile', 'country', 'city', 'email', 'zip',
     ];
+    
 
     public function assignedUsers()
     {

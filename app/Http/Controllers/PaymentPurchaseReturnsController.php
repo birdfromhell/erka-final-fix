@@ -1,138 +1,223 @@
 <?php
+
 namespace App\Http\Controllers;
 
-use App\Mail\PaymentReturn;
-use App\Models\PaymentPurchaseReturns;
-use App\Models\Provider;
-use App\Models\PurchaseReturn;
-use App\Models\Role;
-use App\Models\Setting;
-use App\Models\sms_gateway;
-use App\Models\Account;
-use App\utils\helpers;
-use Carbon\Carbon;
+use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+use App\Models\Provider;
+use App\Models\PaymentPurchaseReturns;
+use App\Mail\Payment_Purchase_Return;
+use App\Models\PurchaseReturn;
+use App\Models\Setting;
+use App\Models\Currency;
+use App\Models\PaymentMethod;
+use App\Models\Account;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
-use Twilio\Rest\Client as Client_Twilio;
+use Config;
 use DB;
 use PDF;
 use ArPHP\I18N\Arabic;
 
-class PaymentPurchaseReturnsController extends BaseController
+class PaymentPurchaseReturnsController extends Controller
 {
-
-    //------------- Get All Payment Purchase Returns --------------\\
-
-    public function index(request $request)
+    /**
+     * Display a listing of the resource.
+     * @return Renderable
+     */
+    public function index()
     {
-        $this->authorizeForUser($request->user('api'), 'Reports_payments_purchase_Return', PaymentPurchaseReturns::class);
-
-        // How many items do you want to display.
-        $perPage = $request->limit;
-        $pageStart = \Request::get('page', 1);
-        // Start displaying items from this number;
-        $offSet = ($pageStart * $perPage) - $perPage;
-        $order = $request->SortField;
-        $dir = $request->SortType;
-        $helpers = new helpers();
-        $role = Auth::user()->roles()->first();
-        $view_records = Role::findOrFail($role->id)->inRole('record_view');
-        // Filter fields With Params to retriever
-        $param = array(0 => 'like', 1 => '=', 2 => 'like');
-        $columns = array(0 => 'Ref', 1 => 'purchase_return_id', 2 => 'Reglement');
-        $data = array();
-
-        // Check If User Has Permission View  All Records
-        $Payments = PaymentPurchaseReturns::with('account','PurchaseReturn', 'PurchaseReturn.provider')
-            ->where('deleted_at', '=', null)
-            ->whereBetween('date', array($request->from, $request->to))
-            ->where(function ($query) use ($view_records) {
-                if (!$view_records) {
-                    return $query->where('user_id', '=', Auth::user()->id);
-                }
-            })
-
-        // Multiple Filter
-            ->where(function ($query) use ($request) {
-                return $query->when($request->filled('provider_id'), function ($query) use ($request) {
-                    return $query->whereHas('PurchaseReturn.provider', function ($q) use ($request) {
-                        $q->where('id', '=', $request->provider_id);
-                    });
-                });
-            });
-        $Filtred = $helpers->filter($Payments, $columns, $param, $request)
-
-        // Search With Multiple Param
-            ->where(function ($query) use ($request) {
-                return $query->when($request->filled('search'), function ($query) use ($request) {
-                    return $query->where('Ref', 'LIKE', "%{$request->search}%")
-                        ->orWhere('date', 'LIKE', "%{$request->search}%")
-                        ->orWhere('Reglement', 'LIKE', "%{$request->search}%")
-                        ->orWhere(function ($query) use ($request) {
-                            return $query->whereHas('PurchaseReturn', function ($q) use ($request) {
-                                $q->where('Ref', 'LIKE', "%{$request->search}%");
-                            });
-                        })
-                        ->orWhere(function ($query) use ($request) {
-                            return $query->whereHas('PurchaseReturn.provider', function ($q) use ($request) {
-                                $q->where('name', 'LIKE', "%{$request->search}%");
-                            });
-                        });
-                });
-            });
-
-        $totalRows = $Filtred->count();
-        if($perPage == "-1"){
-            $perPage = $totalRows;
-        }
-        $Payments = $Filtred->offset($offSet)
-            ->limit($perPage)
-            ->orderBy($order, $dir)
-            ->get();
-
-        foreach ($Payments as $Payment) {
-
-            $item['date']          = $Payment->date;
-            $item['Ref']           = $Payment->Ref;
-            $item['Ref_return']    = $Payment['PurchaseReturn']->Ref;
-            $item['provider_name'] = $Payment['PurchaseReturn']['provider']->name;
-            $item['Reglement']     = $Payment->Reglement;
-            $item['montant']       = $Payment->montant;
-            $item['account_name']  = $Payment['account']?$Payment['account']->account_name:'---';
-            $data[] = $item;
-        }
-
-        $suppliers = Provider::where('deleted_at', '=', null)->get(['id', 'name']);
-        $purchase_returns = PurchaseReturn::get(['Ref', 'id']);
-
-        return response()->json([
-            'totalRows' => $totalRows,
-            'payments' => $data,
-            'purchase_returns' => $purchase_returns,
-            'suppliers' => $suppliers,
-        ]);
+        //
     }
 
-    //----------- Store New Payment Purchase Return --------------\\
+    public function create()
+    {
+        //
+    }
 
+    /**
+     * Store a newly created resource in storage.
+     * @param Request $request
+     * @return Renderable
+     */
     public function store(Request $request)
     {
-        $this->authorizeForUser($request->user('api'), 'create', PaymentPurchaseReturns::class);
+        $user_auth = auth()->user();
+		if ($user_auth->can('payment_purchase_returns_add')){
 
-        if($request['montant'] > 0){
-            \DB::transaction(function () use ($request) {
-                $role = Auth::user()->roles()->first();
-                $view_records = Role::findOrFail($role->id)->inRole('record_view');
-                $PurchaseReturn = PurchaseReturn::findOrFail($request['purchase_return_id']);
+            $request->validate([
+                'purchase_return_id'  => 'required',
+                'date'  => 'required',
+                'payment_method_id'  => 'required',
+            ]);
+
+            if($request['montant'] > 0){
+                \DB::transaction(function () use ($request) {
+                    $PurchaseReturn = PurchaseReturn::findOrFail($request['purchase_return_id']);
+            
+                    $total_paid = $PurchaseReturn->paid_amount + $request['montant'];
+                    $due = $PurchaseReturn->GrandTotal - $total_paid;
+
+                    if ($due === 0.0 || $due < 0.0) {
+                        $payment_statut = 'paid';
+                    } else if ($due !== $PurchaseReturn->GrandTotal) {
+                        $payment_statut = 'partial';
+                    } else if ($due === $PurchaseReturn->GrandTotal) {
+                        $payment_statut = 'unpaid';
+                    }
+
+                    PaymentPurchaseReturns::create([
+                        'purchase_return_id' => $request['purchase_return_id'],
+                        'Ref'                => $this->generate_random_code_payment_return(),
+                        'account_id'         => $request['account_id']?$request['account_id']:NULL,
+                        'date'               => $request['date'],
+                        'payment_method_id'  => $request['payment_method_id'],
+                        'montant'            => $request['montant'],
+                        'change'             => 0,
+                        'notes'              => $request['notes'],
+                        'user_id'            => Auth::user()->id,
+                    ]);
+
+                    $account = Account::where('id', $request['account_id'])->exists();
+
+                    if ($account) {
+                        // Account exists, perform the update
+                        $account = Account::find($request['account_id']);
+                        $account->update([
+                            'initial_balance' => $account->initial_balance + $request['montant'],
+                        ]);
+                    }
+
+                    $PurchaseReturn->update([
+                        'paid_amount'    => $total_paid,
+                        'payment_statut' => $payment_statut,
+                    ]);
+
+                }, 10);
+            }
+
+            return response()->json(['success' => true]);
+
+        }
+        return abort('403', __('You are not authorized'));
+    }
+
+    /**
+     * Show the specified resource.
+     * @param int $id
+     * @return Renderable
+     */
+    public function show($id)
+    {
+        //
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     * @param int $id
+     * @return Renderable
+     */
+    public function edit($id)
+    {
+        //
+    }
+
+    /**
+     * Update the specified resource in storage.
+     * @param Request $request
+     * @param int $id
+     * @return Renderable
+     */
+    public function update(Request $request, $id)
+    {
+        $user_auth = auth()->user();
+		if ($user_auth->can('payment_purchase_returns_edit')){
+
+            $request->validate([
+                'date'  => 'required',
+                'payment_method_id'  => 'required',
+            ]);
+
+
+            \DB::transaction(function () use ($id, $request) {
+                $payment = PaymentPurchaseReturns::findOrFail($id);
         
-                // Check If User Has Permission view All Records
-                if (!$view_records) {
-                    // Check If User->id === purchase return->id
-                    $this->authorizeForUser($request->user('api'), 'check_record', $PurchaseReturn);
+                $PurchaseReturn = PurchaseReturn::find($payment->purchase_return_id);
+                $old_total_paid = $PurchaseReturn->paid_amount - $payment->montant;
+                $new_total_paid = $old_total_paid + $request['montant'];
+                $due = $PurchaseReturn->GrandTotal - $new_total_paid;
+
+                if ($due === 0.0 || $due < 0.0) {
+                    $payment_statut = 'paid';
+                } else if ($due !== $PurchaseReturn->GrandTotal) {
+                    $payment_statut = 'partial';
+                } else if ($due === $PurchaseReturn->GrandTotal) {
+                    $payment_statut = 'unpaid';
                 }
 
-                $total_paid = $PurchaseReturn->paid_amount + $request['montant'];
+                 //delete old balance
+                 $account = Account::where('id', $payment->account_id)->exists();
+
+                 if ($account) {
+                     // Account exists, perform the update
+                     $account = Account::find($payment->account_id);
+                     $account->update([
+                         'initial_balance' => $account->initial_balance - $payment->montant,
+                     ]);
+                 }
+                
+                $payment->update([
+                    'date'      => $request['date'],
+                    'payment_method_id'      => $request['payment_method_id'],
+                    'account_id'             => $request['account_id']?$request['account_id']:NULL,
+                    'montant'   => $request['montant'],
+                    'notes'     => $request['notes'],
+                ]);
+
+                 //update new account
+
+                 $new_account = Account::where('id', $request['account_id'])->exists();
+
+                 if ($new_account) {
+                     // Account exists, perform the update
+                     $new_account = Account::find($request['account_id']);
+                     $new_account->update([
+                         'initial_balance' => $new_account->initial_balance + $request['montant'],
+                     ]);
+                 }
+
+                $PurchaseReturn->update([
+                    'paid_amount'    => $new_total_paid,
+                    'payment_statut' => $payment_statut,
+                ]);
+
+            }, 10);
+
+            return response()->json(['success' => true, 'message' => 'Payment Update successfully'], 200);
+
+        }
+        return abort('403', __('You are not authorized'));
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     * @param int $id
+     * @return Renderable
+     */
+    public function destroy($id)
+    {
+
+        $user_auth = auth()->user();
+		if ($user_auth->can('payment_purchase_returns_delete')){
+
+            \DB::transaction(function () use ($id) {
+                $role = Auth::user()->roles()->first();
+                $payment = PaymentPurchaseReturns::findOrFail($id);
+
+                $PurchaseReturn = PurchaseReturn::find($payment->purchase_return_id);
+                $total_paid = $PurchaseReturn->paid_amount - $payment->montant;
                 $due = $PurchaseReturn->GrandTotal - $total_paid;
 
                 if ($due === 0.0 || $due < 0.0) {
@@ -143,230 +228,131 @@ class PaymentPurchaseReturnsController extends BaseController
                     $payment_statut = 'unpaid';
                 }
 
-                PaymentPurchaseReturns::create([
-                    'purchase_return_id' => $request['purchase_return_id'],
-                    'account_id'         => $request['account_id']?$request['account_id']:NULL,
-                    'Ref' => $this->getNumberOrder(),
-                    'date' => $request['date'],
-                    'Reglement' => $request['Reglement'],
-                    'montant' => $request['montant'],
-                    'change' => $request['change'],
-                    'notes' => $request['notes'],
-                    'user_id' => Auth::user()->id,
+                PaymentPurchaseReturns::whereId($id)->update([
+                    'deleted_at' => Carbon::now(),
                 ]);
 
-                $account = Account::where('id', $request['account_id'])->exists();
+                $account = Account::where('id', $payment->account_id)->exists();
 
                 if ($account) {
                     // Account exists, perform the update
-                    $account = Account::find($request['account_id']);
+                    $account = Account::find($payment->account_id);
                     $account->update([
-                        'balance' => $account->balance + $request['montant'],
+                        'initial_balance' => $account->initial_balance - $payment->montant,
                     ]);
                 }
 
                 $PurchaseReturn->update([
-                    'paid_amount' => $total_paid,
+                    'paid_amount'    => $total_paid,
                     'payment_statut' => $payment_statut,
                 ]);
 
             }, 10);
+
+            return response()->json(['success' => true, 'message' => 'Payment Delete successfully'], 200);
+
         }
-
-        return response()->json(['success' => true, 'message' => 'Payment Create successfully'], 200);
+        return abort('403', __('You are not authorized'));
     }
 
-    //------------ function show -----------\\
+      //----------- Get Data for Create payment_sale_returns --------------\\
 
-    public function show($id){
-        //
-        
-    }
+      public function get_data_create(Request $request, $id)
+      {
+          $PurchaseReturn = PurchaseReturn::findOrFail($id);
+          $due = number_format($PurchaseReturn->GrandTotal - $PurchaseReturn->paid_amount, 2, '.', '');
 
-    //----------- Update Payment Purchase Return --------------\\
+          $payment_methods = PaymentMethod::where('deleted_at', '=', null)->orderBy('id', 'desc')->get(['id','title']);
+          $accounts = Account::where('deleted_at', '=', null)->orderBy('id', 'desc')->get(['id','account_name']);
 
-    public function update(Request $request, $id)
-    {
-        $this->authorizeForUser($request->user('api'), 'update', PaymentPurchaseReturns::class);
-
-        \DB::transaction(function () use ($id, $request) {
-            $role = Auth::user()->roles()->first();
-            $view_records = Role::findOrFail($role->id)->inRole('record_view');
-            $payment = PaymentPurchaseReturns::findOrFail($id);
-    
-            // Check If User Has Permission view All Records
-            if (!$view_records) {
-                // Check If User->id === payment->id
-                $this->authorizeForUser($request->user('api'), 'check_record', $payment);
-            }
-
-            $PurchaseReturn = PurchaseReturn::find($payment->purchase_return_id);
-            $old_total_paid = $PurchaseReturn->paid_amount - $payment->montant;
-            $new_total_paid = $old_total_paid + $request['montant'];
-            $due = $PurchaseReturn->GrandTotal - $new_total_paid;
-
-            if ($due === 0.0 || $due < 0.0) {
-                $payment_statut = 'paid';
-            } else if ($due !== $PurchaseReturn->GrandTotal) {
-                $payment_statut = 'partial';
-            } else if ($due === $PurchaseReturn->GrandTotal) {
-                $payment_statut = 'unpaid';
-            }
-
-             //delete old balance
-             $account = Account::where('id', $payment->account_id)->exists();
-
-             if ($account) {
-                 // Account exists, perform the update
-                 $account = Account::find($payment->account_id);
-                 $account->update([
-                     'balance' => $account->balance - $payment->montant,
-                 ]);
-             }
-            
-            $payment->update([
-                'date' => $request['date'],
-                'Reglement' => $request['Reglement'],
-                'account_id' => $request['account_id']?$request['account_id']:NULL,
-                'montant' => $request['montant'],
-                'change' => $request['change'],
-                'notes' => $request['notes'],
+          return response()->json(
+            [
+                'due' => $due,
+                'payment_methods' => $payment_methods,
+                'accounts' => $accounts,
             ]);
+ 
+      }
 
-            //update new account
-
-            $new_account = Account::where('id', $request['account_id'])->exists();
-
-            if ($new_account) {
-                // Account exists, perform the update
-                $new_account = Account::find($request['account_id']);
-                $new_account->update([
-                    'balance' => $new_account->balance + $request['montant'],
-                ]);
-            }
-
-            $PurchaseReturn->update([
-                'paid_amount' => $new_total_paid,
-                'payment_statut' => $payment_statut,
-            ]);
-
-        }, 10);
-
-        return response()->json(['success' => true, 'message' => 'Payment Update successfully'], 200);
-    }
-
-    //----------- Remove Payment Purchase Return --------------\\
-
-    public function destroy(Request $request, $id)
-    {
-        $this->authorizeForUser($request->user('api'), 'delete', PaymentPurchaseReturns::class);
-
-        
-        \DB::transaction(function () use ($id, $request) {
-            $role = Auth::user()->roles()->first();
-            $view_records = Role::findOrFail($role->id)->inRole('record_view');
-            $payment = PaymentPurchaseReturns::findOrFail($id);
-    
-            // Check If User Has Permission view All Records
-            if (!$view_records) {
-                // Check If User->id === payment->id
-                $this->authorizeForUser($request->user('api'), 'check_record', $payment);
-            }
-
-            $PurchaseReturn = PurchaseReturn::find($payment->purchase_return_id);
-            $total_paid = $PurchaseReturn->paid_amount - $payment->montant;
-            $due = $PurchaseReturn->GrandTotal - $total_paid;
-
-            if ($due === 0.0 || $due < 0.0) {
-                $payment_statut = 'paid';
-            } else if ($due !== $PurchaseReturn->GrandTotal) {
-                $payment_statut = 'partial';
-            } else if ($due === $PurchaseReturn->GrandTotal) {
-                $payment_statut = 'unpaid';
-            }
-
-            PaymentPurchaseReturns::whereId($id)->update([
-                'deleted_at' => Carbon::now(),
-            ]);
-
-            $account = Account::where('id', $payment->account_id)->exists();
-
-            if ($account) {
-                // Account exists, perform the update
-                $account = Account::find($payment->account_id);
-                $account->update([
-                    'balance' => $account->balance - $payment->montant,
-                ]);
-            }
-
-            $PurchaseReturn->update([
-                'paid_amount' => $total_paid,
-                'payment_statut' => $payment_statut,
-            ]);
-
-        }, 10);
-
-        return response()->json(['success' => true, 'message' => 'Payment Delete successfully'], 200);
-    }
 
     //------------- Send Payment Purchase Return To Email -----------\\
 
     public function SendEmail(Request $request)
     {
 
-        $this->authorizeForUser($request->user('api'), 'view', PaymentPurchaseReturns::class);
+        $id = $request->id;
+        $payment_data = PaymentPurchaseReturns::with('PurchaseReturn.provider')->findOrFail($id);
 
+        $payment= [];
         $payment['id'] = $request->id;
-        $payment['Ref'] = $request->Ref;
-        $settings = Setting::where('deleted_at', '=', null)->first();
-        $payment['company_name'] = $settings->CompanyName;
+        $payment['Ref'] =  $payment_data->Ref;
+        $payment['to'] = $payment_data['PurchaseReturn']['provider']->email;
+        $payment['provider_name'] = $payment_data['PurchaseReturn']['provider']->name;
         
         $pdf = $this->payment_return($request, $payment['id']);
-        $this->Set_config_mail(); // Set_config_mail => BaseController
-        $mail = Mail::to($request->to)->send(new PaymentReturn($payment, $pdf));
+        $this->Set_config_mail(); 
+        $mail = Mail::to($payment['to'])->send(new Payment_Purchase_Return($payment, $pdf));
         return $mail;
+
     }
 
-    //----------- Number Order Payment Purchase Return --------------\\
-
-    public function getNumberOrder()
+    // Set config mail
+    public function Set_config_mail()
     {
-        $last = DB::table('payment_purchase_returns')->latest('id')->first();
+      $config = array(
+          'driver' => env('MAIL_MAILER'),
+          'host' => env('MAIL_HOST'),
+          'port' => env('MAIL_PORT'),
+          'from' => array('address' => env('MAIL_FROM_ADDRESS'), 'name' =>  env('MAIL_FROM_NAME')),
+          'encryption' => env('MAIL_ENCRYPTION'),
+          'username' => env('MAIL_USERNAME'),
+          'password' => env('MAIL_PASSWORD'),
+          'sendmail' => '/usr/sbin/sendmail -bs',
+          'pretend' => false,
+          'stream' => [
+              'ssl' => [
+                  'allow_self_signed' => true,
+                  'verify_peer' => false,
+                  'verify_peer_name' => false,
+              ],
+          ],
+      );
+      Config::set('mail', $config);
 
-        if ($last) {
-            $item = $last->Ref;
-            $nwMsg = explode("_", $item);
-            $inMsg = $nwMsg[1] + 1;
-            $code = $nwMsg[0] . '_' . $inMsg;
+    }
+    
+    // generate_random_code_payment_return
+    public function generate_random_code_payment_return()
+    {
+        $gen_code = 'INV/RP-' . date("Ymd") . '-'. substr(number_format(time() * mt_rand(), 0, '', ''), 0, 6);
 
+        if (PaymentPurchaseReturns::where('Ref', $gen_code)->exists()) {
+            $this->generate_random_code_payment_return();
         } else {
-            $code = 'INV/RT_1111';
+            return $gen_code;
         }
-        return $code;
+        
     }
 
-    //----------- Payment Purchase Return PDF --------------\\
+         //----------- Payment Purchase Return PDF --------------\\
 
     public function payment_return(Request $request, $id)
     {
-        $payment = PaymentPurchaseReturns::with('PurchaseReturn', 'PurchaseReturn.provider')->findOrFail($id);
+        $payment = PaymentPurchaseReturns::with('payment_method','PurchaseReturn', 'PurchaseReturn.provider')->findOrFail($id);
 
         $payment_data['return_Ref'] = $payment['PurchaseReturn']->Ref;
         $payment_data['supplier_name'] = $payment['PurchaseReturn']['provider']->name;
         $payment_data['supplier_phone'] = $payment['PurchaseReturn']['provider']->phone;
-        $payment_data['supplier_adr'] = $payment['PurchaseReturn']['provider']->adresse;
+        $payment_data['supplier_adr'] = $payment['PurchaseReturn']['provider']->address;
         $payment_data['supplier_email'] = $payment['PurchaseReturn']['provider']->email;
         $payment_data['montant'] = $payment->montant;
         $payment_data['Ref'] = $payment->Ref;
-        $payment_data['date'] = $payment->date;
-        $payment_data['Reglement'] = $payment->Reglement;
+        $payment_data['date'] = Carbon::parse($payment->date)->format('d-m-Y H:i');
+        $payment_data['Reglement'] = $payment['payment_method']->title;
 
-        $helpers = new helpers();
         $settings = Setting::where('deleted_at', '=', null)->first();
-        $symbol = $helpers->Get_Currency_Code();
 
         $Html = view('pdf.Payment_Purchase_Return', [
-            'symbol' => $symbol,
             'setting' => $settings,
             'payment' => $payment_data,
         ])->render();
@@ -384,55 +370,4 @@ class PaymentPurchaseReturnsController extends BaseController
         return $pdf->download('Payment_Purchase_Return.pdf');
 
     }
-
-     //-------------------Sms Notifications -----------------\\
-     public function Send_SMS(Request $request)
-     {
-         $payment = PaymentPurchaseReturns::with('PurchaseReturn', 'PurchaseReturn.provider')->findOrFail($request->id);
-         $settings = Setting::where('deleted_at', '=', null)->first();
-         $gateway = sms_gateway::where('id' , $settings->sms_gateway)
-         ->where('deleted_at', '=', null)->first();
-
-         $url = url('/api/payment_return_purchase_pdf/' . $request->id);
-         $receiverNumber = $payment['PurchaseReturn']['provider']->phone;
-         $message = "Dear" .' '.$payment['PurchaseReturn']['provider']->name." \n We are contacting you in regard to a Payment #".$payment['PurchaseReturn']->Ref.' '.$url.' '. "that has been created on your account. \n We look forward to conducting future business with you.";
-         
-         //twilio
-        if($gateway->title == "twilio"){
-            try {
-    
-                $account_sid = env("TWILIO_SID");
-                $auth_token = env("TWILIO_TOKEN");
-                $twilio_number = env("TWILIO_FROM");
-    
-                $client = new Client_Twilio($account_sid, $auth_token);
-                $client->messages->create($receiverNumber, [
-                    'from' => $twilio_number, 
-                    'body' => $message]);
-        
-            } catch (Exception $e) {
-                return response()->json(['message' => $e->getMessage()], 500);
-            }
-
-        //nexmo
-        }
-        // elseif($gateway->title == "nexmo"){
-        //     try {
-
-        //         $basic  = new \Nexmo\Client\Credentials\Basic(env("NEXMO_KEY"), env("NEXMO_SECRET"));
-        //         $client = new \Nexmo\Client($basic);
-        //         $nexmo_from = env("NEXMO_FROM");
-        
-        //         $message = $client->message()->send([
-        //             'to' => $receiverNumber,
-        //             'from' => $nexmo_from,
-        //             'text' => $message
-        //         ]);
-                        
-        //     } catch (Exception $e) {
-        //         return response()->json(['message' => $e->getMessage()], 500);
-        //     }
-        // }
-    }
-
 }

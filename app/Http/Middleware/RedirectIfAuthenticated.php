@@ -16,23 +16,13 @@ class RedirectIfAuthenticated
      * @param  string|null  $guard
      * @return mixed
      */
-    public function handle($request, Closure $next, $guard = null)
+    public function handle($request, Closure $next, $guard=null)
     {
-        switch ($guard) {
-            case 'store':
-                if (Auth::guard($guard)->check()) {
-                    return redirect('/store/home');
-                }
-                break;
-            default:
-                if (Auth::guard($guard)->check()) {
-                    return redirect('/');
-                }
-                break;
+
+        if (Auth::guard($guard)->check() && Auth::User()->status) {
+            return redirect('/dashboard/admin');
         }
-    
+
         return $next($request);
     }
-    
-
 }

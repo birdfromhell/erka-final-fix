@@ -14,567 +14,655 @@ class PermissionsSeeder extends Seeder
     {
        // Insert some stuff
 	DB::table('permissions')->insert(
-		array([
+		array(
+		[
 			'id'    => 1,
-			'name'  => 'users_view',
+			'name'  => 'user_view',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 2,
-			'name'  => 'users_edit',
+			'name'  => 'user_add',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 3,
-			'name'  => 'record_view',
+			'name'  => 'user_edit',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 4,
-			'name'  => 'users_delete',
+			'name'  => 'user_delete',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 5,
-			'name'  => 'users_add',
+			'name'  => 'account_view',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 6,
-			'name'  => 'permissions_edit',
+			'name'  => 'account_add',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 7,
-			'name'  => 'permissions_view',
+			'name'  => 'account_edit',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 8,
-			'name'  => 'permissions_delete',
+			'name'  => 'account_delete',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 9,
-			'name'  => 'permissions_add',
+			'name'  => 'deposit_view',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 10,
-			'name'  => 'products_delete',
+			'name'  => 'deposit_add',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 11,
-			'name'  => 'products_view',
+			'name'  => 'deposit_edit',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 12,
-			'name'  => 'barcode_view',
+			'name'  => 'deposit_delete',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 13,
-			'name'  => 'products_edit',
+			'name'  => 'expense_view',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 14,
-			'name'  => 'products_add',
+			'name'  => 'expense_add',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 15,
-			'name'  => 'expense_add',
+			'name'  => 'expense_edit',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 16,
 			'name'  => 'expense_delete',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 17,
-			'name'  => 'expense_edit',
+			'name'  => 'client_view_all',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 18,
-			'name'  => 'expense_view',
+			'name'  => 'client_add',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 19,
-			'name'  => 'transfer_delete',
+			'name'  => 'client_edit',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 20,
-			'name'  => 'transfer_add',
+			'name'  => 'client_delete',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 21,
-			'name'  => 'transfer_view',
+			'name'  => 'deposit_category',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 22,
-			'name'  => 'transfer_edit',
+			'name'  => 'payment_method',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 23,
-			'name'  => 'adjustment_delete',
+			'name'  => 'expense_category',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 24,
-			'name'  => 'adjustment_add',
+			'name'  => 'settings',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 25,
-			'name'  => 'adjustment_edit',
+			'name'  => 'currency',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 26,
-			'name'  => 'adjustment_view',
+			'name'  => 'backup',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 27,
-			'name'  => 'Sales_edit',
+			'name'  => 'group_permission',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 28,
-			'name'  => 'Sales_view',
+			'name'  => 'products_view',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 29,
-			'name'  => 'Sales_delete',
+			'name'  => 'products_add',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 30,
-			'name'  => 'Sales_add',
+			'name'  => 'products_edit',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 31,
-			'name'  => 'Purchases_edit',
+			'name'  => 'products_delete',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 32,
-			'name'  => 'Purchases_view',
+			'name'  => 'barcode_view',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 33,
-			'name'  => 'Purchases_delete',
+			'name'  => 'category',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 34,
-			'name'  => 'Purchases_add',
+			'name'  => 'brand',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 35,
-			'name'  => 'Quotations_edit',
+			'name'  => 'unit',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 36,
-			'name'  => 'Quotations_delete',
+			'name'  => 'warehouse',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 37,
-			'name'  => 'Quotations_add',
+			'name'  => 'adjustment_view_all',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 38,
-			'name'  => 'Quotations_view',
+			'name'  => 'adjustment_add',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 39,
-			'name'  => 'payment_sales_delete',
+			'name'  => 'adjustment_edit',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 40,
-			'name'  => 'payment_sales_add',
+			'name'  => 'adjustment_delete',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 41,
-			'name'  => 'payment_sales_edit',
+			'name'  => 'transfer_view_all',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 42,
-			'name'  => 'payment_sales_view',
+			'name'  => 'transfer_add',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 43,
-			'name'  => 'Purchase_Returns_delete',
+			'name'  => 'transfer_edit',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 44,
-			'name'  => 'Purchase_Returns_add',
+			'name'  => 'transfer_delete',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 45,
-			'name'  => 'Purchase_Returns_view',
+			'name'  => 'sales_view_all',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 46,
-			'name'  => 'Purchase_Returns_edit',
+			'name'  => 'sales_add',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 47,
-			'name'  => 'Sale_Returns_delete',
+			'name'  => 'sales_edit',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 48,
-			'name'  => 'Sale_Returns_add',
+			'name'  => 'sales_delete',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 49,
-			'name'  => 'Sale_Returns_edit',
+			'name'  => 'bon_livraison',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 50,
-			'name'  => 'Sale_Returns_view',
+			'name'  => 'purchases_view_all',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 51,
-			'name'  => 'payment_purchases_edit',
+			'name'  => 'purchases_add',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 52,
-			'name'  => 'payment_purchases_view',
+			'name'  => 'purchases_edit',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 53,
-			'name'  => 'payment_purchases_delete',
+			'name'  => 'purchases_delete',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 54,
-			'name'  => 'payment_purchases_add',
+			'name'  => 'quotations_view_all',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 55,
-			'name'  => 'payment_returns_edit',
+			'name'  => 'quotations_add',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 56,
-			'name'  => 'payment_returns_view',
+			'name'  => 'quotations_edit',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 57,
-			'name'  => 'payment_returns_delete',
+			'name'  => 'quotations_delete',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 58,
-			'name'  => 'payment_returns_add',
+			'name'  => 'sale_returns_view_all',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 59,
-			'name'  => 'Customers_edit',
+			'name'  => 'sale_returns_add',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 60,
-			'name'  => 'Customers_view',
+			'name'  => 'sale_returns_edit',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 61,
-			'name'  => 'Customers_delete',
+			'name'  => 'sale_returns_delete',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 62,
-			'name'  => 'Customers_add',
+			'name'  => 'purchase_returns_view_all',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 63,
-			'name'  => 'unit',
+			'name'  => 'purchase_returns_add',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 64,
-			'name'  => 'currency',
+			'name'  => 'purchase_returns_edit',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 65,
-			'name'  => 'category',
+			'name'  => 'purchase_returns_delete',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 66,
-			'name'  => 'backup',
+			'name'  => 'payment_sales_view',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 67,
-			'name'  => 'warehouse',
+			'name'  => 'payment_sales_add',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 68,
-			'name'  => 'brand',
+			'name'  => 'payment_sales_edit',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 69,
-			'name'  => 'setting_system',
+			'name'  => 'payment_sales_delete',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 70,
-			'name'  => 'Warehouse_report',
+			'name'  => 'payment_purchases_view',
+			'guard_name'  => 'web',
+		],
+		[
+			'id'    => 71,
+			'name'  => 'payment_purchases_add',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 72,
-			'name'  => 'Reports_quantity_alerts',
+			'name'  => 'payment_purchases_edit',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 73,
-			'name'  => 'Reports_profit',
+			'name'  => 'payment_purchases_delete',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 74,
-			'name'  => 'Reports_suppliers',
+			'name'  => 'payment_sell_returns_view',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 75,
-			'name'  => 'Reports_customers',
+			'name'  => 'payment_sell_returns_add',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 76,
-			'name'  => 'Reports_purchase',
+			'name'  => 'payment_sell_returns_edit',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 77,
-			'name'  => 'Reports_sales',
+			'name'  => 'payment_sell_returns_delete',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 78,
-			'name'  => 'Reports_payments_purchase_Return',
+			'name'  => 'suppliers_view_all',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 79,
-			'name'  => 'Reports_payments_Sale_Returns',
+			'name'  => 'suppliers_add',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 80,
-			'name'  => 'Reports_payments_Purchases',
+			'name'  => 'suppliers_edit',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 81,
-			'name'  => 'Reports_payments_Sales',
+			'name'  => 'suppliers_delete',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 82,
-			'name'  => 'Suppliers_delete',
+			'name'  => 'sale_reports',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 83,
-			'name'  => 'Suppliers_add',
+			'name'  => 'purchase_reports',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 84,
-			'name'  => 'Suppliers_edit',
+			'name'  => 'payment_sale_reports',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 85,
-			'name'  => 'Suppliers_view',
+			'name'  => 'payment_purchase_reports',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 86,
-			'name'  => 'Pos_view',
+			'name'  => 'payment_return_sale_reports',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 87,
-			'name'  => 'product_import',
+			'name'  => 'top_products_report',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 88,
-			'name'  => 'customers_import',
+			'name'  => 'report_products',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 89,
-			'name'  => 'Suppliers_import',
+			'name'  => 'report_inventaire',
+			'guard_name'  => 'web',
 		],
 
-		//hrm
 		[
 			'id'    => 90,
-			'name'  => 'view_employee',
+			'name'  => 'report_clients',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 91,
-			'name'  => 'add_employee',
+			'name'  => 'report_fournisseurs',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 92,
-			'name'  => 'edit_employee',
+			'name'  => 'reports_devis',
+			'guard_name'  => 'web',
 		],
+		
 		[
 			'id'    => 93,
-			'name'  => 'delete_employee',
+			'name'  => 'reports_alert_qty',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 94,
-			'name'  => 'company',
+			'name'  => 'pos',
+			'guard_name'  => 'web',
 		],
+		
 		[
 			'id'    => 95,
-			'name'  => 'department',
+			'name'  => 'report_profit',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 96,
-			'name'  => 'designation',
+			'name'  => 'dashboard',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 97,
-			'name'  => 'office_shift',
+			'name'  => 'print_labels',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 98,
-			'name'  => 'attendance',
+			'name'  => 'adjustment_details',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 99,
-			'name'  => 'leave',
+			'name'  => 'pay_sale_due',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 100,
-			'name'  => 'holiday',
+			'name'  => 'pay_sale_return_due',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 101,
-			'name'  => 'Top_products',
+			'name'  => 'client_details',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 102,
-			'name'  => 'Top_customers',
+			'name'  => 'supplier_details',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 103,
-			'name'  => 'shipment',
+			'name'  => 'pay_purchase_due',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 104,
-			'name'  => 'users_report',
+			'name'  => 'pay_purchase_return_due',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 105,
-			'name'  => 'stock_report',
+			'name'  => 'purchases_details',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 106,
-			'name'  => 'sms_settings',
+			'name'  => 'sales_details',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 107,
-			'name'  => 'pos_settings',
+			'name'  => 'quotation_details',
+			'guard_name'  => 'web',
 		],
+
 		[
 			'id'    => 108,
-			'name'  => 'payment_gateway',
+			'name'  => 'sms_settings',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 109,
-			'name'  => 'mail_settings',
+			'name'  => 'notification_template',
+			'guard_name'  => 'web',
 		],
+
 		[
 			'id'    => 110,
-			'name'  => 'dashboard',
+			'name'  => 'payment_purchase_returns_view',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 111,
-			'name'  => 'pay_due',
+			'name'  => 'payment_purchase_returns_add',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 112,
-			'name'  => 'pay_sale_return_due',
+			'name'  => 'payment_purchase_returns_edit',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 113,
-			'name'  => 'pay_supplier_due',
+			'name'  => 'payment_purchase_returns_delete',
+			'guard_name'  => 'web',
 		],
+
 		[
 			'id'    => 114,
-			'name'  => 'pay_purchase_return_due',
+			'name'  => 'payment_return_purchase_reports',
+			'guard_name'  => 'web',
 		],
 		[
 			'id'    => 115,
-			'name'  => 'product_report',
-		],
-		[
-			'id'    => 116,
-			'name'  => 'product_sales_report',
-		],
-		[
-			'id'    => 117,
-			'name'  => 'product_purchases_report',
-		],
-		[
-			'id'    => 118,
-			'name'  => 'notification_template',
-		],
-		[
-			'id'    => 119,
-			'name'  => 'edit_product_sale',
-		],
-		[
-			'id'    => 120,
-			'name'  => 'edit_product_purchase',
-		],
-		[
-			'id'    => 121,
-			'name'  => 'edit_product_quotation',
-		],
-		[
-			'id'    => 122,
-			'name'  => 'edit_tax_discount_shipping_sale',
-		],
-		[
-			'id'    => 123,
-			'name'  => 'edit_tax_discount_shipping_purchase',
-		],
-		[
-			'id'    => 124,
-			'name'  => 'edit_tax_discount_shipping_quotation',
-		],
-		[
-			'id'    => 125,
-			'name'  => 'module_settings',
-		],
-
-		[
-			'id'    => 126,
-			'name'  => 'count_stock',
-		],
-		[
-			'id'    => 127,
-			'name'  => 'deposit_add',
-		],
-		[
-			'id'    => 128,
-			'name'  => 'deposit_delete',
-		],
-		[
-			'id'    => 129,
-			'name'  => 'deposit_edit',
-		],
-		[
-			'id'    => 130,
-			'name'  => 'deposit_view',
-		],
-		[
-			'id'    => 131,
-			'name'  => 'account',
-		],
-
-		[
-			'id'    => 132,
-			'name'  => 'inventory_valuation',
-		],
-
-		[
-			'id'    => 133,
-			'name'  => 'expenses_report',
-		],
-		[
-			'id'    => 134,
-			'name'  => 'deposits_report',
-		],
-		[
-			'id'    => 135,
-			'name'  => 'transfer_money',
-		],
-		[
-			'id'    => 136,
-			'name'  => 'payroll',
+			'name'  => 'pos_settings',
+			'guard_name'  => 'web',
 		],
 		
-		[
-			'id'    => 137,
-			'name'  => 'projects',
-		],
+
+		
+
+
+
+
+
+
+
+		//---------------------------------------
 
 		[
-			'id'    => 138,
-			'name'  => 'tasks',
+			'id'    => 200,
+			'name'  => 'adjustment_view_own',
+			'guard_name'  => 'web',
 		],
-
+		
+		
+		[
+			'id'    => 201,
+			'name'  => 'transfer_view_own',
+			'guard_name'  => 'web',
+		],
+		[
+			'id'    => 202,
+			'name'  => 'sales_view_own',
+			'guard_name'  => 'web',
+		],
+		[
+			'id'    => 203,
+			'name'  => 'purchases_view_own',
+			'guard_name'  => 'web',
+		],
+		[
+			'id'    => 204,
+			'name'  => 'quotations_view_own',
+			'guard_name'  => 'web',
+		],
+		[
+			'id'    => 205,
+			'name'  => 'sale_returns_view_own',
+			'guard_name'  => 'web',
+		],
+		[
+			'id'    => 206,
+			'name'  => 'purchase_returns_view_own',
+			'guard_name'  => 'web',
+		],
+		[
+			'id'    => 207,
+			'name'  => 'client_view_own',
+			'guard_name'  => 'web',
+		],
+		[
+			'id'    => 208,
+			'name'  => 'suppliers_view_own',
+			'guard_name'  => 'web',
+		],
+		[
+			'id'    => 209,
+			'name'  => 'attendance_view_own',
+			'guard_name'  => 'web',
+		],
+		
 		
 		)
 	);
-	}
-	
-
-	
+    }
 }

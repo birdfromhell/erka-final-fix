@@ -2,411 +2,308 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Role;
-use App\Models\Setting;
+use Illuminate\Http\Request;
 use App\Models\User;
-use App\Models\role_user;
-use App\Models\product_warehouse;
-use App\Models\Warehouse;
 use App\Models\UserWarehouse;
-use App\utils\helpers;
+use App\Models\Warehouse;
+use DataTables;
+use Carbon\Carbon;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
-use Config;
 use File;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
-use Intervention\Image\ImageManagerStatic as Image;
-use \Nwidart\Modules\Facades\Module;
 
-class UserController extends BaseController
+
+class UserController extends Controller
 {
-
-    //------------- GET ALL USERS---------\\
-
-    public function index(request $request)
+    /**
+     * Display a listing of the resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function index(Request $request)
     {
+        $user_auth = auth()->user();
+		if ($user_auth->can('user_view')){
 
-        $this->authorizeForUser($request->user('api'), 'view', User::class);
-        // How many items do you want to display.
-        $perPage = $request->limit;
-        $pageStart = \Request::get('page', 1);
-        // Start displaying items from this number;
-        $offSet = ($pageStart * $perPage) - $perPage;
-        $order = $request->SortField;
-        $dir = $request->SortType;
-        $helpers = new helpers();
-        // Filter fields With Params to retrieve
-        $columns = array(0 => 'username', 1 => 'statut', 2 => 'phone', 3 => 'email');
-        $param = array(0 => 'like', 1 => '=', 2 => 'like', 3 => 'like');
-        $data = array();
+            $roles = Role::where('deleted_at', '=', null)->get(['id','name']);
+            $users = User::where('deleted_at', '=', null)->with('RoleUser')->orderBy('id', 'desc')->get();
+            $warehouses = Warehouse::where('deleted_at', '=', null)->get(['id', 'name']);
 
-        $Role = Auth::user()->roles()->first();
-        $ShowRecord = Role::findOrFail($Role->id)->inRole('record_view');
+            return view('user.user_list', compact('users','roles','warehouses'));
 
-        $users = User::where(function ($query) use ($ShowRecord) {
-            if (!$ShowRecord) {
-                return $query->where('id', '=', Auth::user()->id);
-            }
-        });
-
-        //Multiple Filter
-        $Filtred = $helpers->filter($users, $columns, $param, $request)
-        // Search With Multiple Param
-            ->where(function ($query) use ($request) {
-                return $query->when($request->filled('search'), function ($query) use ($request) {
-                    return $query->where('username', 'LIKE', "%{$request->search}%")
-                        ->orWhere('firstname', 'LIKE', "%{$request->search}%")
-                        ->orWhere('lastname', 'LIKE', "%{$request->search}%")
-                        ->orWhere('email', 'LIKE', "%{$request->search}%")
-                        ->orWhere('phone', 'LIKE', "%{$request->search}%");
-                });
-            });
-        $totalRows = $Filtred->count();
-        if($perPage == "-1"){
-            $perPage = $totalRows;
         }
-        $users = $Filtred->offset($offSet)
-            ->limit($perPage)
-            ->orderBy($order, $dir)
-            ->get();
-
-        $roles = Role::where('deleted_at', null)->get(['id', 'name']);
-        $warehouses = Warehouse::where('deleted_at', '=', null)->get(['id', 'name']);
-
-        return response()->json([
-            'users' => $users,
-            'roles' => $roles,
-            'warehouses' => $warehouses,
-            'totalRows' => $totalRows,
-        ]);
-    }
-
-    //------------- GET USER Auth ---------\\
-
-    public function GetUserAuth(Request $request)
-    {
-        $helpers = new helpers();
-        $user['avatar'] = Auth::user()->avatar;
-        $user['username'] = Auth::user()->username;
-        $user['currency'] = $helpers->Get_Currency();
-        $user['logo'] = Setting::first()->logo;
-        $user['default_language'] = Setting::first()->default_language;
-        $user['show_language'] = Setting::first()->show_language;
-        $user['footer'] = Setting::first()->footer;
-        $user['developed_by'] = Setting::first()->developed_by;
-        $permissions = Auth::user()->roles()->first()->permissions->pluck('name');
-        $products_alerts = product_warehouse::join('products', 'product_warehouse.product_id', '=', 'products.id')
-            ->whereRaw('qte <= stock_alert')
-            ->where('product_warehouse.deleted_at', null)
-            ->count();
-
-
-        $allEnabledModules = Module::allEnabled();
-        $ModulesEnabled = [];
-        foreach($allEnabledModules as $module) {
-            $name = $module->getName();
-            $lowercaseName = strtolower($name);
-            $module_name = config($lowercaseName . '.name');
-            $url = config($lowercaseName . '.url');
-            $icon = config($lowercaseName . '.icon');
-            $permission = config($lowercaseName . '.permission');
-            $ModulesEnabled[] = [
-                'name' => $module_name,
-                'url' => $url,
-                'icon' => $icon,
-                'permission' => $permission,
-            ];
-        }
+        return abort('403', __('You are not authorized'));
     
-
-        return response()->json([
-            'success' => true,
-            'user' => $user,
-            'notifs' => $products_alerts,
-            'permissions' => $permissions,
-            'ModulesEnabled' => $ModulesEnabled, 
-        ]);
     }
 
-    //------------- GET USER ROLES ---------\\
 
-    public function GetUserRole(Request $request)
+
+    /**
+     * Show the form for creating a new resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function create()
     {
+        $user_auth = auth()->user();
+		if ($user_auth->can('user_add')){
 
-        $roles = Auth::user()->roles()->with('permissions')->first();
+            $roles = Role::where('deleted_at', '=', null)
+            ->orderBy('id', 'desc')
+            ->get(['id','name']);
 
-        $data = [];
-        if ($roles) {
-            foreach ($roles->permissions as $permission) {
-                $data[] = $permission->name;
+            return response()->json($roles);
 
-            }
-            return response()->json(['success' => true, 'data' => $data]);
         }
-
+        return abort('403', __('You are not authorized'));
     }
 
-    //------------- STORE NEW USER ---------\\
-
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
     public function store(Request $request)
     {
-        $this->authorizeForUser($request->user('api'), 'create', User::class);
-        $this->validate($request, [
-            'email' => 'required|unique:users',
-        ], [
-            'email.unique' => 'This Email already taken.',
-        ]);
-        \DB::transaction(function () use ($request) {
-            if ($request->hasFile('avatar')) {
+        $user_auth = auth()->user();
+		if ($user_auth->can('user_add')){
 
-                $image = $request->file('avatar');
-                $filename = rand(11111111, 99999999) . $image->getClientOriginalName();
+            $request->validate([
+                'username'  => 'required|string|max:255',
+                'email'     => 'required|string|email|max:255|unique:users',
+                'password'  => 'required|string|min:6|confirmed',
+                'password_confirmation' => 'required',
+                'avatar'    => 'nullable|image|mimes:jpeg,png,jpg,bmp,gif,svg|max:2048',
+                'status'    => 'required',
+                'role_users_id'    => 'required',
+            ]);
 
-                $image_resize = Image::make($image->getRealPath());
-                $image_resize->resize(128, 128);
-                $image_resize->save(public_path('/images/avatar/' . $filename));
+            \DB::transaction(function () use ($request) {
 
-            } else {
-                $filename = 'no_avatar.png';
-            }
 
-            if($request['is_all_warehouses'] == '1' || $request['is_all_warehouses'] == 'true'){
-                $is_all_warehouses = 1;
-            }else{
-                $is_all_warehouses = 0;
-            }
+                if ($request->hasFile('avatar')) {
 
-            $User = new User;
-            $User->firstname = $request['firstname'];
-            $User->lastname  = $request['lastname'];
-            $User->username  = $request['username'];
-            $User->email     = $request['email'];
-            $User->phone     = $request['phone'];
-            $User->password  = Hash::make($request['password']);
-            $User->avatar    = $filename;
-            $User->role_id   = $request['role'];
-            $User->is_all_warehouses   = $is_all_warehouses;
-            $User->save();
 
-            $role_user = new role_user;
-            $role_user->user_id = $User->id;
-            $role_user->role_id = $request['role'];
-            $role_user->save();
+                    $image = $request->file('avatar');
+                    $filename = time().'.'.$image->extension();  
+                    $image->move(public_path('/images/avatar'), $filename);
 
-            if(!$User->is_all_warehouses){
-                $User->assignedWarehouses()->sync($request['assigned_to']);
-            }
-    
-        }, 10);
+                } else {
+                    $filename = 'no_avatar.png';
+                }
 
-        return response()->json(['success' => true]);
+                if($request['is_all_warehouses'] == '1' || $request['is_all_warehouses'] == 'true'){
+                    $is_all_warehouses = 1;
+                }else{
+                    $is_all_warehouses = 0;
+                }
+
+                $user = User::create([
+                    'username'  => $request['username'],
+                    'email'     => $request['email'],
+                    'avatar'    => $filename,
+                    'password'  => Hash::make($request['password']),
+                    'role_users_id'   => $request['role_users_id'],
+                    'status'    => $request['status'],
+                    'is_all_warehouses'    => $is_all_warehouses,
+                ]);
+
+                $user->assignRole($request['role_users_id']);
+
+                if($is_all_warehouses !== 1){
+                    $user->assignedWarehouses()->sync($request['assigned_to']);
+                }
+
+            }, 10);
+
+            return response()->json(['success' => true]);
+
+        }
+        return abort('403', __('You are not authorized'));
     }
 
-    //------------ function show -----------\\
-
-    public function show($id){
-        //
-        
-    }
-
-    public function edit(Request $request, $id)
+    /**
+     * Display the specified resource.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function show($id)
     {
-        $this->authorizeForUser($request->user('api'), 'update', User::class);
-
-        $assigned_warehouses = UserWarehouse::where('user_id', $id)->pluck('warehouse_id')->toArray();
-        $warehouses = Warehouse::where('deleted_at', '=', null)->whereIn('id', $assigned_warehouses)->pluck('id')->toArray();
-
-        return response()->json([
-            'assigned_warehouses' => $warehouses,
-        ]);
+        //
     }
 
-    //------------- UPDATE  USER ---------\\
+    /**
+     * Show the form for editing the specified resource.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function edit($id)
+    {
+        $user_auth = auth()->user();
+		if ($user_auth->can('user_edit')){
 
+            $assigned_warehouses = UserWarehouse::where('user_id', $id)->pluck('warehouse_id')->toArray();
+            $warehouses = Warehouse::where('deleted_at', '=', null)->whereIn('id', $assigned_warehouses)->pluck('id')->toArray();
+
+            $User = User::findOrFail($id);
+
+            return response()->json([
+                'assigned_warehouses' => $warehouses,
+                'User' => $User,
+            ]);
+
+        }
+        return abort('403', __('You are not authorized'));
+    }
+
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
     public function update(Request $request, $id)
-    {        
-        $this->authorizeForUser($request->user('api'), 'update', User::class);
-        
-        $this->validate($request, [
-            'email' => 'required|email|unique:users',
-            'email' => Rule::unique('users')->ignore($id),
-        ], [
-            'email.unique' => 'This Email already taken.',
-        ]);
+    {
+        $user_auth = auth()->user();
+		if ($user_auth->can('user_edit')){
 
-        \DB::transaction(function () use ($id ,$request) {
-            $user = User::findOrFail($id);
-            $current = $user->password;
+            $this->validate($request, [
+                'email' => 'required|string|email|max:255|unique:users',
+                'email' => Rule::unique('users')->ignore($id),
+                'username'  => 'required|string|max:255',
+                'avatar'    => 'nullable|image|mimes:jpeg,png,jpg,bmp,gif,svg|max:2048',
+                'password'  =>  'sometimes|nullable|string|confirmed|min:6,'.$id,
+                'status'    => 'required',
+            ], [
+                'email.unique' => 'This Email already taken.',
+            ]);
 
-            if ($request->NewPassword != 'null') {
-                if ($request->NewPassword != $current) {
-                    $pass = Hash::make($request->NewPassword);
+            \DB::transaction(function () use ($request , $id) {
+
+                $user = User::findOrFail($id);
+                $current = $user->password;
+
+                if ($request->password != null) {
+                    if ($request->password != $current) {
+                        $pass = Hash::make($request->password);
+                    } else {
+                        $pass = $user->password;
+                    }
+
                 } else {
                     $pass = $user->password;
                 }
 
-            } else {
-                $pass = $user->password;
-            }
+                $currentAvatar = $user->avatar;
+                if ($request->avatar != null) {
+                    if ($request->avatar != $currentAvatar) {
 
-            $currentAvatar = $user->avatar;
-            if ($request->avatar != $currentAvatar) {
-
-                $image = $request->file('avatar');
-                $path = public_path() . '/images/avatar';
-                $filename = rand(11111111, 99999999) . $image->getClientOriginalName();
-
-                $image_resize = Image::make($image->getRealPath());
-                $image_resize->resize(128, 128);
-                $image_resize->save(public_path('/images/avatar/' . $filename));
-
-                $userPhoto = $path . '/' . $currentAvatar;
-                if (file_exists($userPhoto)) {
-                    if ($user->avatar != 'no_avatar.png') {
-                        @unlink($userPhoto);
+                        $image = $request->file('avatar');
+                        $filename = time().'.'.$image->extension();  
+                        $image->move(public_path('/images/avatar'), $filename);
+                        $path = public_path() . '/images/avatar';
+                        $userPhoto = $path . '/' . $currentAvatar;
+                        if (file_exists($userPhoto)) {
+                            if ($user->avatar != 'no_avatar.png') {
+                                @unlink($userPhoto);
+                            }
+                        }
+                    } else {
+                        $filename = $currentAvatar;
                     }
+                }else{
+                    $filename = $currentAvatar;
                 }
-            } else {
-                $filename = $currentAvatar;
-            }
 
-            if($request['is_all_warehouses'] == '1' || $request['is_all_warehouses'] == 'true'){
-                $is_all_warehouses = 1;
-            }else{
-                $is_all_warehouses = 0;
-            }
-
-            User::whereId($id)->update([
-                'firstname' => $request['firstname'],
-                'lastname' => $request['lastname'],
-                'username' => $request['username'],
-                'email' => $request['email'],
-                'phone' => $request['phone'],
-                'password' => $pass,
-                'avatar' => $filename,
-                'statut' => $request['statut'],
-                'is_all_warehouses' => $is_all_warehouses,
-                'role_id' => $request['role'],
-
-            ]);
-
-            role_user::where('user_id' , $id)->update([
-                'user_id' => $id,
-                'role_id' => $request['role'],
-            ]);
-
-            $user_saved = User::where('deleted_at', '=', null)->findOrFail($id);
-            $user_saved->assignedWarehouses()->sync($request['assigned_to']);
-
-        }, 10);
-        
-        return response()->json(['success' => true]);
-
-    }
-
-
-    //------------- UPDATE PROFILE ---------\\
-
-    public function updateProfile(Request $request)
-    {
-        $id = Auth::user()->id;
-        $user = User::findOrFail($id);
-        $current = $user->password;
-
-        if ($request->NewPassword != 'undefined') {
-            if ($request->NewPassword != $current) {
-                $pass = Hash::make($request->NewPassword);
-            } else {
-                $pass = $user->password;
-            }
-
-        } else {
-            $pass = $user->password;
-        }
-
-        $currentAvatar = $user->avatar;
-        if ($request->avatar != $currentAvatar) {
-
-            $image = $request->file('avatar');
-            $path = public_path() . '/images/avatar';
-            $filename = rand(11111111, 99999999) . $image->getClientOriginalName();
-
-            $image_resize = Image::make($image->getRealPath());
-            $image_resize->resize(128, 128);
-            $image_resize->save(public_path('/images/avatar/' . $filename));
-
-            $userPhoto = $path . '/' . $currentAvatar;
-
-            if (file_exists($userPhoto)) {
-                if ($user->avatar != 'no_avatar.png') {
-                    @unlink($userPhoto);
+                if($request['is_all_warehouses'] == '1' || $request['is_all_warehouses'] == 'true'){
+                    $is_all_warehouses = 1;
+                }else{
+                    $is_all_warehouses = 0;
                 }
-            }
-        } else {
-            $filename = $currentAvatar;
+
+
+                $user = User::whereId($id)->update([
+                    'username'  => $request['username'],
+                    'email'     => $request['email'],
+                    'avatar'    => $filename,
+                    'password'  => $pass,
+                    'status'    => $request['status'],
+                    'is_all_warehouses' => $is_all_warehouses,
+                ]);
+
+                $user_saved = User::where('deleted_at', '=', null)->findOrFail($id);
+
+                if($is_all_warehouses !== 1 && $request['assigned_to'] != ''){
+                    $user_saved->assignedWarehouses()->sync($request['assigned_to']);
+                }else{
+                    $user_saved->assignedWarehouses()->detach();
+                }
+                
+            }, 10);
+
+            return response()->json(['success' => true]);
+
         }
-
-        User::whereId($id)->update([
-            'firstname' => $request['firstname'],
-            'lastname' => $request['lastname'],
-            'username' => $request['username'],
-            'email' => $request['email'],
-            'phone' => $request['phone'],
-            'password' => $pass,
-            'avatar' => $filename,
-
-        ]);
-
-        return response()->json(['avatar' => $filename, 'user' => $request['username']]);
-
+        return abort('403', __('You are not authorized'));
     }
 
-    //----------- IsActivated (Update Statut User) -------\\
-
-    public function IsActivated(request $request, $id)
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function destroy($id)
     {
+        $user_auth = auth()->user();
+		if ($user_auth->can('user_delete')){
 
-        $this->authorizeForUser($request->user('api'), 'update', User::class);
+            \DB::transaction(function () use ($id) {
+    
+                $user = User::where('deleted_at', '=', null)->findOrFail($id);
+                $user->status = 0;
+                $user->deleted_at = Carbon::now();
+                $user->save();
 
-        $user = Auth::user();
-        if ($request['id'] !== $user->id) {
-            User::whereId($id)->update([
-                'statut' => $request['statut'],
-            ]);
-            return response()->json([
-                'success' => true,
-            ]);
-        } else {
-            return response()->json([
-                'success' => false,
-            ]);
+                $user->assignedWarehouses()->detach();
+    
+            }, 10);
+
+            return response()->json(['success' => true]);
+
         }
+        return abort('403', __('You are not authorized'));
     }
 
-    public function GetPermissions()
-    {
-        $roles = Auth::user()->roles()->with('permissions')->first();
-        $data = [];
-        if ($roles) {
-            foreach ($roles->permissions as $permission) {
-                $item[$permission->name]['slug'] = $permission->name;
-                $item[$permission->name]['id'] = $permission->id;
 
-            }
-            $data[] = $item;
+    public function assignRole(Request $request)
+    {
+        $user_auth = auth()->user();
+        if ($user_auth->can('group_permission')){
+            
+            //remove role
+            $get_user = User::find($request->user_id);
+            $get_user->removeRole($get_user->role_users_id);
+
+            User::whereId($request->user_id)->update([
+                'role_users_id' => $request->role_id,
+            ]);
+
+            $user_updated = User::find($request->user_id);
+            $user_updated->assignRole($request->role_id);
+
+            return response()->json(['success' => true]);
+
         }
-        return $data[0];
-
+        return abort('403', __('You are not authorized'));
     }
 
-    //------------- GET USER Auth ---------\\
-
-    public function GetInfoProfile(Request $request)
-    {
-        $data = Auth::user();
-        return response()->json(['success' => true, 'user' => $data]);
-    }
-
+ 
 }

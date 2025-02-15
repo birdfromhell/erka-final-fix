@@ -11,7 +11,7 @@ class PaymentPurchase extends Model
     protected $dates = ['deleted_at'];
 
     protected $fillable = [
-        'purchase_id', 'date', 'montant','change', 'Ref', 'Reglement', 'user_id', 'notes','account_id'
+        'purchase_id', 'date', 'montant','change', 'Ref', 'payment_method_id', 'user_id', 'notes','account_id'
     ];
 
     protected $casts = [
@@ -20,21 +20,27 @@ class PaymentPurchase extends Model
         'purchase_id' => 'integer',
         'user_id' => 'integer',
         'account_id' => 'integer',
+        'payment_method_id' => 'integer',
     ];
-
-    public function user()
-    {
-        return $this->belongsTo('App\Models\User');
-    }
 
     public function account()
     {
         return $this->belongsTo('App\Models\Account');
     }
 
+    public function user()
+    {
+        return $this->belongsTo('App\Models\User');
+    }
+
     public function purchase()
     {
         return $this->belongsTo('App\Models\Purchase');
+    }
+
+    public function payment_method()
+    {
+        return $this->belongsTo('App\Models\PaymentMethod');
     }
 
 }

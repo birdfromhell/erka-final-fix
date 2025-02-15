@@ -2,6 +2,9 @@
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use App\Models\User;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
 
 class UserSeeder extends Seeder
 {
@@ -16,17 +19,16 @@ class UserSeeder extends Seeder
         DB::table('users')->insert(
             array(
                 'id' => 1,
-                'firstname' => 'William',
-                'lastname' => 'Castillo',
-                'username' => 'William Castillo',
+                'username' => 'Ababil Mustaqim',
                 'email' => 'admin@example.com',
                 'password' => '$2y$10$IFj6SwqC0Sxrsiv4YkCt.OJv1UV4mZrWuyLoRG7qt47mseP9mJ58u',
                 'avatar' => 'no_avatar.png',
-                'phone' => '0123456789',
-                'role_id' => 1,
-                'statut' => 1,
+                'role_users_id' => 1,
                 'is_all_warehouses' => 1,
+                'status' => 1,
             )
         );
+        $user = User::findOrFail(1);
+        $user->assignRole(1);
     }
 }

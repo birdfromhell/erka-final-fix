@@ -3,13 +3,9 @@
 namespace App\Http\Middleware;
 
 use Illuminate\Auth\Middleware\Authenticate as Middleware;
-use Illuminate\Support\Facades\Storage;
 
 class Authenticate extends Middleware
 {
-
-    //add an array of routes to skip santize check
-
     /**
      * Get the path the user should be redirected to when they are not authenticated.
      *
@@ -18,15 +14,8 @@ class Authenticate extends Middleware
      */
     protected function redirectTo($request)
     {
-        
-
-        $installed = Storage::disk('public')->exists('installed');
-        if ($request->is('store') || $request->is('store/*')) {
-            return route('store.login');
-        }
-
         if (! $request->expectsJson()) {
             return route('login');
         }
-        }
+    }
 }

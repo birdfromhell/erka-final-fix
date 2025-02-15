@@ -1,46 +1,85 @@
+<?php $setting = DB::table('settings')->where('deleted_at', '=', null)->first(); ?>
+
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-    <link rel=icon href=/images/favicon.ico>
-    <link rel="stylesheet" href="/css/master.css">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <link rel=icon href={{ asset('images/logo.svg') }}>
 
-    <title>Stocky | Ultimate Inventory With POS</title>
-  </head>
+        <!-- CSRF Token -->
+        <meta name="csrf-token" content="{{ csrf_token() }}">
+        <title>Posly - POS with Inventory Management</title>
+        <link href="https://fonts.googleapis.com/css?family=Nunito:300,400,400i,600,700,800,900" rel="stylesheet">
+        @yield('before-css')
+        {{-- theme css --}}
 
-  <body class="text-left">
-    <noscript>
-      <strong>
-        We're sorry but Stocky doesn't work properly without JavaScript
-        enabled. Please enable it to continue.</strong
-      >
-    </noscript>
+        {{-- App Css for custom style --}}
 
-    <!-- built files will be auto injected -->
-    <div class="loading_wrap" id="loading_wrap">
-      <div class="loader_logo">
-      <img src="/images/logo.png" class="" alt="logo" />
+        <link  rel="stylesheet" href="{{ asset('assets/fonts/iconsmind/iconsmind.css') }}">
+        <link rel="stylesheet" href="{{ asset('assets/styles/css/themes/lite-purple.min.css') }}">
 
-      </div>
+        <link rel="stylesheet" href="{{asset('assets/styles/vendor/toastr.css')}}">
+        <link rel="stylesheet" href="{{asset('assets/styles/vendor/vue-select.css')}}">
+        <link rel="stylesheet" href="{{asset('assets/styles/vendor/sweetalert2.min.css')}}">
+        <link rel="stylesheet" href="{{asset('assets/styles/vendor/nprogress.css')}}"> 
+        
+        {{-- axios js --}}
+        <script src="{{ asset('assets/js/axios.js') }}"></script>
+        {{-- vue select js --}}
+        <script src="{{ asset('assets/js/vue-select.js') }}"></script>
+        <script defer src="{{ asset('assets/js/compact-layout.js') }}"></script>
+        
+        {{-- Alpine Js --}}
+        <script defer src="{{ asset('js/plugin-core/alpine-collapse.js') }}"></script>
+        <script defer src="{{ asset('js/plugin-core/alpine.js') }}"></script>
+        <script src="{{ asset('js/plugin-script/alpine-data.js') }}"></script>
+        <script src="{{ asset('js/plugin-script/alpine-store.js') }}"></script>
+        
+        {{-- page specific css --}}
+        @yield('page-css')
+    </head>
 
-      <div class="loading"></div>
-    </div>
-    <div id="app">
-      <script src="/assets_setup/js/qrcode.js"></script>
+    <body class="text-left">
+        <!-- Pre Loader Strat  -->
+        <div class='loadscreen' id="preloader">
+            <div class="loader spinner-bubble spinner-bubble-primary"></div>
+        </div>
+        <!-- Pre Loader end  -->
 
-    </div>
+        <!-- ============ Vetical SIdebar Layout start ============= -->
+        @include('layouts.new-sidebar.master')
+        <!-- ============ Vetical SIdebar Layout End ============= -->
 
-    <script>
-      window.config = {
-        "ModulesEnabled" : @json($ModulesEnabled),
-        "ModulesInstalled" : @json($ModulesInstalled),
-      };
-    </script>
+        {{-- vue js --}}
+        <script src="{{ asset('assets/js/vue.js') }}"></script>
 
-    <script src="/js/main.min.js?v=4.0.8"></script>
+        <script src="{{ asset('assets/js/bootstrap.min.js') }}"></script>
 
-  </body>
+        <script src="{{asset('assets/js/vee-validate.min.js')}}"></script>
+        <script src="{{asset('assets/js/vee-validate-rules.min.js')}}"></script>
+        <script src="{{asset('/assets/js/moment.min.js')}}"></script>
+
+        {{-- sweetalert2 --}}
+        <script src="{{asset('assets/js/vendor/sweetalert2.min.js')}}"></script>
+
+
+        {{-- common js --}}
+        <script src="{{ asset('assets/js/common-bundle-script.js') }}"></script>
+        {{-- page specific javascript --}}
+        @yield('page-js')
+
+        <script src="{{ asset('assets/js/script.js') }}"></script>
+
+        <script src="{{asset('assets/js/vendor/toastr.min.js')}}"></script>
+
+        <script src="{{asset('assets/js/nprogress.js')}}"></script>
+
+        <script src="{{ asset('assets/js/tooltip.script.js') }}"></script>
+        
+        <script type="text/javascript" src="<?php echo asset('assets/js/pdfmake_arabic.min.js') ?>"></script>
+        <script type="text/javascript" src="<?php echo asset('assets/js/vfs_fonts_arabic.js') ?>"></script>
+        @yield('bottom-js')
+    </body>
 </html>

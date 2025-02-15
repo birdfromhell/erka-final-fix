@@ -9,13 +9,12 @@
 </head>
 
 <body>
-    <div style="margin: 10px; padding: 10px;">
+    <div class="email_body_style">
      
       {!! $data['body'] !!}
 
-      <p
-        style="box-sizing: border-box; font-family: -apple-system, position: relative; line-height: 1.5em; margin-top: 0; color: #b0adc5; font-size: 12px; text-align: center;">
-        &copy; <?php echo date ('Y'); ?>  {{$data['company_name']}}. All rights reserved.</p>
+      <p class="footer_email">
+        &copy; <?php echo date ('Y'); ?>  {{$data['company_name']}}. {{ __('translate.All rights reserved') }}</p>
     </div>
 </body>
 

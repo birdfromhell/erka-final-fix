@@ -2,216 +2,194 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Permission;
-use App\Models\Role;
-use App\Models\User;
-use App\utils\helpers;
-use Carbon\Carbon;
-use DB;
 use Illuminate\Http\Request;
-
-class PermissionsController extends BaseController
+use App\Models\User;
+use Carbon\Carbon;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
+class PermissionsController extends Controller
 {
-
-    //----------- GET ALL Roles --------------\\
-
-    public function index(Request $request)
+    /**
+     * Display a listing of the resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function index()
     {
-        $this->authorizeForUser($request->user('api'), 'view', Role::class);
-        // How many items do you want to display.
-        $perPage = $request->limit;
-        $pageStart = \Request::get('page', 1);
-        // Start displaying items from this number;
-        $offSet = ($pageStart * $perPage) - $perPage;
-        $order = $request->SortField;
-        $dir = $request->SortType;
-        $helpers = new helpers();
+        $user_auth = auth()->user();
+		if ($user_auth->can('group_permission')){
 
-        $roles = Role::where('deleted_at', '=', null)
-        // Search With Multiple Param
-            ->where(function ($query) use ($request) {
-                return $query->when($request->filled('search'), function ($query) use ($request) {
-                    return $query->where('name', 'LIKE', "%{$request->search}%")
-                        ->orWhere('description', 'LIKE', "%{$request->search}%");
-                });
-            });
-        $totalRows = $roles->count();
-        if($perPage == "-1"){
-            $perPage = $totalRows;
+            $roles = Role::where('deleted_at', '=', null)->orderBy('id', 'desc')->get();
+            return view('permissions.permissions_list', compact('roles'));
+
         }
-        $roles = $roles->offset($offSet)
-            ->limit($perPage)
-            ->orderBy($order, $dir)
-            ->get();
-
-        return response()->json([
-            'roles' => $roles,
-            'totalRows' => $totalRows,
-        ]);
+        return abort('403', __('You are not authorized'));
     }
 
-    //----------- Store new Role --------------\\
+    /**
+     * Show the form for creating a new resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function create()
+    {
+        $user_auth = auth()->user();
+		if ($user_auth->can('group_permission')){
 
+            return view('permissions.create_permission');
+
+        }
+        return abort('403', __('You are not authorized'));
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
     public function store(Request $request)
     {
-        $this->authorizeForUser($request->user('api'), 'create', Role::class);
+        // dd($request->all());
 
-        try {
-            request()->validate([
-                'role.name' => 'required',
-            ]);
+        $user_auth = auth()->user();
+		if ($user_auth->can('group_permission')){
 
             \DB::transaction(function () use ($request) {
 
+                $request->validate([
+                    'role_name' => 'required|string|max:255'
+                ]);
+
                 //-- Create New Role
                 $Role = new Role;
-                $Role->name = $request['role']['name'];
-                $Role->label = $request['role']['name'];
-                $Role->status = 0;
-                $Role->description = $request['role']['description'];
+                $Role->name = $request['role_name'];
+                $Role->guard_name = 'web';
+                $Role->description = $request['role_description'];
                 $Role->save();
 
-                $role = Role::findOrFail($Role->id);
-                $role->permissions()->detach();
-                $permissions = $request->permissions;
+                $get_role = Role::findOrFail($Role->id);
+                $all_permissions = $request['permissions'];
 
-                foreach ($permissions as $permission_slug) {
-                    $perm = Permission::firstOrCreate(['name' => $permission_slug]);
-                    $data[] = $perm->id;
+                $radio_options = $request->input('radio_option');
+                if (!empty($radio_options)) {
+                    foreach ($radio_options as $key => $value) {
+                        $all_permissions[] = $value;
+                    }
                 }
 
-                $role->permissions()->attach($data);
 
+                app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+                $get_role->syncPermissions($all_permissions);
+            
             }, 10);
 
-            return response()->json(['success' => true]);
+            return redirect('user-management/permissions');
 
-        } catch (ValidationException $e) {
-
-            return response()->json([
-                'status' => 422,
-                'msg' => 'error',
-                'errors' => $e->errors(),
-            ], 422);
         }
-
+        return abort('403', __('You are not authorized'));
     }
 
-    //------------ function show -----------\\
-
-    public function show($id){
+    /**
+     * Display the specified resource.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function show($id)
+    {
         //
-        
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function edit($id)
+    {
+        $user_auth = auth()->user();
+		if ($user_auth->can('group_permission')  && $id != 1){
+
+            $Role = Role::where('deleted_at', '=', null)->with('permissions')->findOrFail($id);
+            if ($Role) {
+                $role['id'] = $Role->id;
+                $role['name'] = $Role->name;
+                $role['description'] = $Role->description;
+                $permissions = [];
+                if ($Role) {
+                    foreach ($Role->permissions as $permission) {
+                        $permissions[] = $permission->name;
+                    }
+                }
+            }
+
+            return view('permissions.edit_permission', compact('permissions','role'));
+
         }
+        return abort('403', __('You are not authorized'));
+       
+    }
 
-    //----------- Update Role --------------\\
-
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
     public function update(Request $request, $id)
     {
-        $this->authorizeForUser($request->user('api'), 'update', Role::class);
+        $user_auth = auth()->user();
+		if ($user_auth->can('group_permission') && $id != 1){
 
-        try {
             request()->validate([
-                'role.name' => 'required',
+                'name' => 'required',
             ]);
 
             \DB::transaction(function () use ($request, $id) {
 
-                Role::whereId($id)->update($request['role']);
+                Role::whereId($id)->update([
+                    'name'           => $request['name'],
+                    'description'    => $request['description'],
+                ]);
+              
 
-                $role = Role::findOrFail($id);
-                $role->permissions()->detach();
-                $permissions = $request->permissions;
-
-                foreach ($permissions as $permission_slug) {
-
-                    //get the permission object by name
-                    $perm = Permission::firstOrCreate(['name' => $permission_slug]);
-                    $data[] = $perm->id;
-                }
-
-                $role->permissions()->attach($data);
+                $get_role = Role::findOrFail($id);
+                $all_permissions = $request['permissions'];
+                app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+                $get_role->syncPermissions($all_permissions);
 
             }, 10);
 
             return response()->json(['success' => true]);
 
-        } catch (ValidationException $e) {
-            return response()->json([
-                'status' => 422,
-                'msg' => 'error',
-                'errors' => $e->errors(),
-            ], 422);
         }
+        return abort('403', __('You are not authorized'));
 
     }
 
-    //----------- Delete Role --------------\\
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function destroy($id)
+    {        
+        $user_auth = auth()->user();
+		if ($user_auth->can('group_permission') && $id != 1){
 
-    public function destroy(Request $request, $id)
-    {
-        $this->authorizeForUser($request->user('api'), 'delete', Role::class);
-
-        Role::whereId($id)->update([
-            'deleted_at' => Carbon::now(),
-        ]);
-        return response()->json(['success' => true]);
-    }
-
-    //-------------- Delete by selection  ---------------\\
-
-    public function delete_by_selection(Request $request)
-    {
-
-        $this->authorizeForUser($request->user('api'), 'delete', Role::class);
-
-        $selectedIds = $request->selectedIds;
-        foreach ($selectedIds as $role_id) {
-            Role::whereId($role_id)->update([
+            Role::whereId($id)->update([
                 'deleted_at' => Carbon::now(),
             ]);
+            return response()->json(['success' => true]);
+
         }
-        return response()->json(['success' => true]);
-    }
-
-
-    //----------- GET ALL Roles without paginate --------------\\
-
-    public function getRoleswithoutpaginate()
-    {
-        $roles = Role::where('deleted_at', null)->get(['id', 'name']);
-        return response()->json($roles);
-    }
-
-    //------------- Show Form Edit Permissions -----------\\
-
-    public function edit(Request $request, $id)
-    {
-
-        $this->authorizeForUser($request->user('api'), 'update', Role::class);
-
-        if($id != '1'){
-            $Role = Role::with('permissions')->where('deleted_at', '=', null)->findOrFail($id);
-            if ($Role) {
-                $item['name'] = $Role->name;
-                $item['description'] = $Role->description;
-                $data = [];
-                if ($Role) {
-                    foreach ($Role->permissions as $permission) {
-                        $data[] = $permission->name;
-                    }
-                }
-            }
-            return response()->json([
-                'permissions' => $data,
-                'role' => $item,
-            ]);
-            
-        }else{
-            return response()->json([
-                'success' => false,
-            ], 401);
-        }
+        return abort('403', __('You are not authorized'));
+        
     }
 
 }

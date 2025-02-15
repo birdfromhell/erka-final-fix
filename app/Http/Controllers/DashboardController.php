@@ -2,654 +2,358 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Client;
-use App\Models\Expense;
-use App\Models\Unit;
-use App\Models\PaymentPurchase;
-use App\Models\PaymentPurchaseReturns;
-use App\Models\PaymentSale;
-use App\Models\PaymentSaleReturns;
+use Illuminate\Contracts\Support\Renderable;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
 use App\Models\Product;
-use App\Models\ProductVariant;
 use App\Models\product_warehouse;
-use App\Models\Provider;
-use App\Models\Purchase;
-use App\Models\Setting;
-use App\Models\PurchaseDetail;
-use App\Models\PurchaseReturn;
-use App\Models\PurchaseReturnDetails;
-use App\Models\Quotation;
-use App\Models\QuotationDetail;
-use App\Models\Role;
 use App\Models\Sale;
 use App\Models\SaleDetail;
+use App\Models\Purchase;
 use App\Models\SaleReturn;
-use App\Models\SaleReturnDetails;
-use App\Models\User;
-use App\Models\UserWarehouse;
+use App\Models\PurchaseReturn;
+use App\Models\Unit;
 use App\Models\Warehouse;
-use App\utils\helpers;
-use Carbon\Carbon;
-use DB;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Http\Request;
+use App\Models\Provider;
+use App\Models\PaymentSale;
+use App\Models\PaymentPurchase;
+use App\Models\PaymentSaleReturns;
+use App\Models\PaymentPurchaseReturns;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use App\Models\Client;
+use App\Models\Setting;
+use Carbon\Carbon;
+use DataTables;
+use Config;
+use Illuminate\Support\Facades\DB;
+use PDF;
+use App\utils\helpers;
 
 class DashboardController extends Controller
 {
 
-    //----------------- dashboard_data -----------------------\\
+    protected $currency;
+    protected $symbol_placement;
 
-    public function dashboard_data(Request $request)
+    public function __construct()
     {
-        $user_auth = auth()->user();
-        if($user_auth->is_all_warehouses){
-            $array_warehouses_id = Warehouse::where('deleted_at', '=', null)->pluck('id')->toArray();
-            $warehouses = Warehouse::where('deleted_at', '=', null)->get(['id', 'name']);
-        }else{
-            $array_warehouses_id = UserWarehouse::where('user_id', $user_auth->id)->pluck('warehouse_id')->toArray();
-            $warehouses = Warehouse::where('deleted_at', '=', null)->whereIn('id', $array_warehouses_id)->get(['id', 'name']);
-        }
-                    
-        if(empty($request->warehouse_id)){
-            $warehouse_id = 0;
-        }else{
-            $warehouse_id = $request->warehouse_id;
-        }
-
-
-
-        $dataSales = $this->SalesChart($warehouse_id, $array_warehouses_id);
-        $datapurchases = $this->PurchasesChart($warehouse_id, $array_warehouses_id);
-        $Payment_chart = $this->Payment_chart($warehouse_id, $array_warehouses_id);
-        $TopCustomers = $this->TopCustomers($warehouse_id, $array_warehouses_id);
-        $Top_Products_Year = $this->Top_Products_Year($warehouse_id, $array_warehouses_id);
-        $report_dashboard = $this->report_dashboard($request, $warehouse_id, $array_warehouses_id);
-
-        return response()->json([
-            'warehouses' => $warehouses,
-            'sales' => $dataSales,
-            'purchases' => $datapurchases,
-            'payments' => $Payment_chart,
-            'customers' => $TopCustomers,
-            'product_report' => $Top_Products_Year,
-            'report_dashboard' => $report_dashboard,
-        ]);
+        $helpers = new helpers();
+        $this->currency = $helpers->Get_Currency();
+        $this->symbol_placement = $helpers->get_symbol_placement();
 
     }
 
-    //----------------- Sales Chart js -----------------------\\
-
-    public function SalesChart($warehouse_id, $array_warehouses_id)
+    /**
+     * Display a listing of the resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function dashboard_admin(Request $request)
     {
-        $role = Auth::user()->roles()->first();
-        $view_records = Role::findOrFail($role->id)->inRole('record_view');
 
-        // Build an array of the dates we want to show, oldest first
-        $dates = collect();
-        foreach (range(-6, 0) as $i) {
-            $date = Carbon::now()->addDays($i)->format('Y-m-d');
-            $dates->put($date, 0);
-        }
+        $helpers = new helpers();
+        $currency = $helpers->Get_Currency();
+        
+        //------------------------ dashboard statistic -------------\\
 
-        $date_range = \Carbon\Carbon::today()->subDays(6);
-        // Get the sales counts
-        $sales = Sale::where('date', '>=', $date_range)
+        $end_date_default = Carbon::today()->format('Y-m-d');
+        $start_date_default = Carbon::today()->format('Y-m-d');
+        
+        $start_date = empty($request->start_date)?$start_date_default:$request->start_date;
+        $end_date = empty($request->end_date)?$end_date_default:$request->end_date;
+
+        $today_sales = Sale::where('deleted_at', '=', null)
+        ->whereDate('date', '>=', $start_date)
+        ->whereDate('date', '<=', $end_date)
+        ->sum('GrandTotal');
+
+        $today_sales = $this->render_price_with_symbol_placement(number_format($today_sales, 2, '.', ','));
+
+
+        $return_sales = SaleReturn::where('deleted_at', '=', null)
+        ->whereDate('date', '>=', $start_date)
+        ->whereDate('date', '<=', $end_date)
+        ->sum('GrandTotal');
+
+        $return_sales = $this->render_price_with_symbol_placement(number_format($return_sales, 2, '.', ','));
+
+
+        $today_purchases = Purchase::where('deleted_at', '=', null)
+        ->whereDate('date', '>=', $start_date)
+        ->whereDate('date', '<=', $end_date)
+        ->sum('GrandTotal');
+
+        $today_purchases = $this->render_price_with_symbol_placement(number_format($today_purchases, 2, '.', ','));
+
+        $return_purchases = PurchaseReturn::where('deleted_at', '=', null)
+        ->whereDate('date', '>=', $start_date)
+        ->whereDate('date', '<=', $end_date)
+        ->sum('GrandTotal');
+
+        $return_purchases = $this->render_price_with_symbol_placement(number_format($return_purchases, 2, '.', ','));
+
+        //-----------chart sales & purchases this week----------------\\
+
+         // Build an array of the dates we want to show, oldest first
+         $dates = collect();
+         foreach (range(-6, 0) as $i) {
+             $date = Carbon::now()->addDays($i)->format('Y-m-d');
+             $dates->put($date, 0);
+         }
+ 
+         $date_range = \Carbon\Carbon::today()->subDays(6);
+ 
+         // Get Sale
+         $Sale = Sale::whereDate('date', '>=', $date_range)
             ->where('deleted_at', '=', null)
-            ->where(function ($query) use ($view_records) {
-                if (!$view_records) {
-                    return $query->where('user_id', '=', Auth::user()->id);
-                }
-            })
-
-            ->where(function ($query) use ($warehouse_id, $array_warehouses_id) {
-                if ($warehouse_id !== 0) {
-                    return $query->where('warehouse_id', $warehouse_id);
-                }else{
-                    return $query->whereIn('warehouse_id', $array_warehouses_id);
-                }
-            })
-            
             ->groupBy(DB::raw("DATE_FORMAT(date,'%Y-%m-%d')"))
             ->orderBy('date', 'asc')
-            ->get([
+            ->select([
                 DB::raw(DB::raw("DATE_FORMAT(date,'%Y-%m-%d') as date")),
                 DB::raw('SUM(GrandTotal) AS count'),
             ])
-            ->pluck('count', 'date');
+        ->pluck('count', 'date');
 
-        // Merge the two collections;
-        $dates = $dates->merge($sales);
-
-        $data = [];
+        // Merge;
+        $dates_sales  = $dates->merge($Sale);
+ 
+         
+        $sales_chart_data = [];
         $days = [];
-        foreach ($dates as $key => $value) {
-            $data[] = $value;
-            $days[] = $key;
+        foreach ($dates_sales as $key => $value) {
+            $sales_chart_data[] = $value;
         }
 
-        return response()->json(['data' => $data, 'days' => $days]);
-
-    }
-
-    //----------------- Purchases Chart -----------------------\\
-
-    public function PurchasesChart($warehouse_id, $array_warehouses_id)
-    {
-
-        $role = Auth::user()->roles()->first();
-        $view_records = Role::findOrFail($role->id)->inRole('record_view');
-
-        // Build an array of the dates we want to show, oldest first
-        $dates = collect();
-        foreach (range(-6, 0) as $i) {
-            $date = Carbon::now()->addDays($i)->format('Y-m-d');
-            $dates->put($date, 0);
-        }
-
-        $date_range = \Carbon\Carbon::today()->subDays(6);
-
-        // Get the purchases counts
-        $purchases = Purchase::where('date', '>=', $date_range)
+         // Get purchases
+         $purchases = Purchase::whereDate('date', '>=', $date_range)
             ->where('deleted_at', '=', null)
-            ->where(function ($query) use ($view_records) {
-                if (!$view_records) {
-                    return $query->where('user_id', '=', Auth::user()->id);
-                }
-            })
-            ->where(function ($query) use ($warehouse_id, $array_warehouses_id) {
-                if ($warehouse_id !== 0) {
-                    return $query->where('warehouse_id', $warehouse_id);
-                }else{
-                    return $query->whereIn('warehouse_id', $array_warehouses_id);
-                }
-            })
             ->groupBy(DB::raw("DATE_FORMAT(date,'%Y-%m-%d')"))
             ->orderBy('date', 'asc')
-            ->get([
+            ->select([
                 DB::raw(DB::raw("DATE_FORMAT(date,'%Y-%m-%d') as date")),
                 DB::raw('SUM(GrandTotal) AS count'),
             ])
-            ->pluck('count', 'date');
+        ->pluck('count', 'date');
+ 
+         // Merge
+         $dates_purchases = $dates->merge($purchases);
 
-        // Merge the two collections;
-        $dates = $dates->merge($purchases);
+         $purchases_chart_data = [];
 
-        $data = [];
-        $days = [];
-        foreach ($dates as $key => $value) {
-            $data[] = $value;
-            $days[] = $key;
-        }
+         foreach ($dates_purchases as $key => $value) {
+             $purchases_chart_data[] = $value;
+             $days[] = $key;
+         }
 
-        return response()->json(['data' => $data, 'days' => $days]);
+        //------------Top clients ----------\\
 
-    }
-
-    //-------------------- Get Top 5 Customers -------------\\
-
-    public function TopCustomers($warehouse_id, $array_warehouses_id)
-    {
-        $role = Auth::user()->roles()->first();
-        $view_records = Role::findOrFail($role->id)->inRole('record_view');
-
-        $data = Sale::whereBetween('date', [
-            Carbon::now()->startOfMonth(),
-            Carbon::now()->endOfMonth(),
-        ])->where('sales.deleted_at', '=', null)
-            ->where(function ($query) use ($view_records) {
-                if (!$view_records) {
-                    return $query->where('sales.user_id', '=', Auth::user()->id);
-                }
-            })
-
-            ->where(function ($query) use ($warehouse_id, $array_warehouses_id) {
-                if ($warehouse_id !== 0) {
-                    return $query->where('sales.warehouse_id', $warehouse_id);
-                }else{
-                    return $query->whereIn('sales.warehouse_id', $array_warehouses_id);
-                }
-            })
-
-            ->join('clients', 'sales.client_id', '=', 'clients.id')
-            ->select(DB::raw('clients.name'), DB::raw("count(*) as value"))
-            ->groupBy('clients.name')
-            ->orderBy('value', 'desc')
-            ->take(5)
-            ->get();
-
-        return response()->json($data);
-    }
-
-
-    //-------------------- Get Top 5 Products This YEAR -------------\\
-
-    public function Top_Products_Year($warehouse_id, $array_warehouses_id)
-    {
-
-        $role = Auth::user()->roles()->first();
-        $view_records = Role::findOrFail($role->id)->inRole('record_view');
-
-        $products = SaleDetail::join('sales', 'sale_details.sale_id', '=', 'sales.id')
-            ->join('products', 'sale_details.product_id', '=', 'products.id')
-            ->whereBetween('sale_details.date', [
-                Carbon::now()->startOfYear(),
-                Carbon::now()->endOfYear(),
-            ])
-            ->where(function ($query) use ($view_records) {
-                if (!$view_records) {
-                    return $query->where('sales.user_id', '=', Auth::user()->id);
-                }
-            })
-
-            ->where(function ($query) use ($warehouse_id, $array_warehouses_id) {
-                if ($warehouse_id !== 0) {
-                    return $query->where('sales.warehouse_id', $warehouse_id);
-                }else{
-                    return $query->whereIn('sales.warehouse_id', $array_warehouses_id);
-                }
-            })
-            ->select(
-                DB::raw('products.name as name'),
-                DB::raw('count(*) as value'),
-            )
-            ->groupBy('products.name')
-            ->orderBy('value', 'desc')
-            ->take(5)
-            ->get();
-
-        return response()->json($products);
-    }
+        $top_clients = Sale::whereDate('date', '>=', Carbon::now()->startOfMonth())
+        ->whereDate('date', '<=',  Carbon::now()->endOfMonth())
+        ->where('sales.deleted_at', '=', null)
     
+        ->join('clients', 'sales.client_id', '=', 'clients.id')
+        ->select(
+            DB::raw('clients.username as name'),
+            DB::raw("sum(GrandTotal) as value")
+        )
+        ->groupBy('clients.username')
+        ->orderBy('value', 'desc')
+        ->take(5)
+        ->get();
 
-    //-------------------- General Report dashboard -------------\\
+        //------------Top products ----------\\
 
-    public function report_dashboard($request, $warehouse_id, $array_warehouses_id)
-    {
-
-        $Role = Auth::user()->roles()->first();
-        $view_records = Role::findOrFail($Role->id)->inRole('record_view');
-
-        // top selling product this month
-        $products = SaleDetail::join('sales', 'sale_details.sale_id', '=', 'sales.id')
+        $top_products = SaleDetail::join('sales', 'sale_details.sale_id', '=', 'sales.id')
             ->join('products', 'sale_details.product_id', '=', 'products.id')
-            ->whereBetween('sale_details.date', [
-                Carbon::now()->startOfMonth(),
-                Carbon::now()->endOfMonth(),
-            ])
-            ->where(function ($query) use ($view_records) {
-                if (!$view_records) {
-                    return $query->where('sales.user_id', '=', Auth::user()->id);
-                }
-            })
-            ->where(function ($query) use ($warehouse_id, $array_warehouses_id) {
-                if ($warehouse_id !== 0) {
-                    return $query->where('sales.warehouse_id', $warehouse_id);
-                }else{
-                    return $query->whereIn('sales.warehouse_id', $array_warehouses_id);
-                }
-            })
+            ->whereDate('sale_details.date', '>=', Carbon::now()->startOfYear())
+            ->whereDate('sale_details.date', '<=',  Carbon::now()->endOfYear())
+
             ->select(
                 DB::raw('products.name as name'),
-                DB::raw('count(*) as total_sales'),
-                DB::raw('sum(total) as total'),
+                DB::raw('sum(quantity) as value'),
             )
             ->groupBy('products.name')
-            ->orderBy('total_sales', 'desc')
+            ->orderBy('value', 'desc')
             ->take(5)
             ->get();
 
-        // Stock Alerts
-        $product_warehouse_data = product_warehouse::with('warehouse', 'product' ,'productVariant')
-        ->join('products', 'product_warehouse.product_id', '=', 'products.id')
-        ->where('manage_stock', true)
-        ->whereRaw('qte <= stock_alert')
-        ->where('product_warehouse.deleted_at', null)
-        ->where(function ($query) use ($warehouse_id, $array_warehouses_id) {
-            if ($warehouse_id !== 0) {
-                return $query->where('product_warehouse.warehouse_id', $warehouse_id);
-            }else{
-                return $query->whereIn('product_warehouse.warehouse_id', $array_warehouses_id);
-            }
-        })
+        // factures unpaid
 
-        ->take('5')->get();
+            $recent_sales = Sale::where('deleted_at', '=', null)
+                ->with('client')
+                ->orderBy('id', 'desc')
+                ->take(5)
+                ->get();
 
-        $stock_alert = [];
-        if ($product_warehouse_data->isNotEmpty()) {
+                $recent_sales_data = [];
 
-            foreach ($product_warehouse_data as $product_warehouse) {
-                if ($product_warehouse->qte <= $product_warehouse['product']->stock_alert) {
-                    if ($product_warehouse->product_variant_id !== null) {
-                        $item['code'] = $product_warehouse['productVariant']->name . '-' . $product_warehouse['product']->code;
-                    } else {
-                        $item['code'] = $product_warehouse['product']->code;
-                    }
-                    $item['quantity'] = $product_warehouse->qte;
-                    $item['name'] = $product_warehouse['product']->name;
-                    $item['warehouse'] = $product_warehouse['warehouse']->name;
-                    $item['stock_alert'] = $product_warehouse['product']->stock_alert;
-                    $stock_alert[] = $item;
+                foreach ($recent_sales as $sale) {
+                    $item['Ref']         = $sale->Ref;
+                    $item['client_name'] = $sale->client->username;
+                    $item['GrandTotal']  = $this->render_price_with_symbol_placement(number_format($sale->GrandTotal, 2, '.', ','));
+                    $item['paid_amount'] = $this->render_price_with_symbol_placement(number_format($sale->paid_amount, 2, '.', ','));
+                    $item['due']         = $this->render_price_with_symbol_placement(number_format($sale->GrandTotal - $sale->paid_amount, 2, '.', ','));
+                  
+                    $recent_sales_data[] = $item;
                 }
-            }
-
-        }
-
-        //---------------- sales
-
-        $data['today_sales'] = Sale::where('deleted_at', '=', null)
-        ->whereBetween('date', array($request->from, $request->to))
-        ->where(function ($query) use ($view_records) {
-            if (!$view_records) {
-                return $query->where('user_id', '=', Auth::user()->id);
-            }
-        })
-        ->where(function ($query) use ($warehouse_id, $array_warehouses_id) {
-            if ($warehouse_id !== 0) {
-                return $query->where('warehouse_id', $warehouse_id);
-            }else{
-                return $query->whereIn('warehouse_id', $array_warehouses_id);
-            }
-        })
-        ->get(DB::raw('SUM(GrandTotal)  As sum'))
-        ->first()->sum;
-
-        $data['today_sales'] = number_format($data['today_sales'], 2, '.', ',');
 
 
-        //--------------- return_sales
+        return view('dashboard.dashboard_admin', [
+            'today_sales' => $today_sales,
+            'return_sales' => $return_sales,
+            'return_purchases' => $return_purchases,
+            'today_purchases' => $today_purchases,
 
-        $data['return_sales'] = SaleReturn::where('deleted_at', '=', null)
-        ->whereBetween('date', array($request->from, $request->to))
-        ->where(function ($query) use ($view_records) {
-            if (!$view_records) {
-                return $query->where('user_id', '=', Auth::user()->id);
-            }
-        })
-        ->where(function ($query) use ($warehouse_id, $array_warehouses_id) {
-            if ($warehouse_id !== 0) {
-                return $query->where('warehouse_id', $warehouse_id);
-            }else{
-                return $query->whereIn('warehouse_id', $array_warehouses_id);
-            }
-        })
-        ->get(DB::raw('SUM(GrandTotal)  As sum'))
-        ->first()->sum; 
-
-        $data['return_sales'] = number_format($data['return_sales'], 2, '.', ',');
-
-        //------------------- purchases
-
-        $data['today_purchases'] = Purchase::where('deleted_at', '=', null)
-        ->whereBetween('date', array($request->from, $request->to))
-        ->where(function ($query) use ($view_records) {
-            if (!$view_records) {
-                return $query->where('user_id', '=', Auth::user()->id);
-            }
-        })
-        ->where(function ($query) use ($warehouse_id, $array_warehouses_id) {
-            if ($warehouse_id !== 0) {
-                return $query->where('warehouse_id', $warehouse_id);
-            }else{
-                return $query->whereIn('warehouse_id', $array_warehouses_id);
-            }
-        })
-        ->get(DB::raw('SUM(GrandTotal)  As sum'))
-        ->first()->sum;
-
-        $data['today_purchases'] = number_format($data['today_purchases'], 2, '.', ',');
-
-        //------------------------- return_purchases
-
-        $data['return_purchases'] = PurchaseReturn::where('deleted_at', '=', null)
-        ->whereBetween('date', array($request->from, $request->to))
-        ->where(function ($query) use ($view_records) {
-            if (!$view_records) {
-                return $query->where('user_id', '=', Auth::user()->id);
-            }
-        })
-        ->where(function ($query) use ($warehouse_id, $array_warehouses_id) {
-            if ($warehouse_id !== 0) {
-                return $query->where('warehouse_id', $warehouse_id);
-            }else{
-                return $query->whereIn('warehouse_id', $array_warehouses_id);
-            }
-        })
-        ->get(DB::raw('SUM(GrandTotal)  As sum'))
-        ->first()->sum;
-
-        $data['return_purchases'] = number_format($data['return_purchases'], 2, '.', ',');
-
-        $last_sales = [];
-
-        //last sales
-        $Sales = Sale::with('details', 'client', 'facture','warehouse')->where('deleted_at', '=', null)
-            ->where(function ($query) use ($view_records) {
-                if (!$view_records) {
-                    return $query->where('user_id', '=', Auth::user()->id);
-                }
-            })
-            ->where(function ($query) use ($warehouse_id, $array_warehouses_id) {
-                if ($warehouse_id !== 0) {
-                    return $query->where('warehouse_id', $warehouse_id);
-                }else{
-                    return $query->whereIn('warehouse_id', $array_warehouses_id);
-                }
-            })
-            ->orderBy('id', 'desc')
-            ->take(5)
-            ->get();
-
-        foreach ($Sales as $Sale) {
-
-            $item_sale['Ref'] = $Sale['Ref'];
-            $item_sale['statut'] = $Sale['statut'];
-            $item_sale['client_name'] = $Sale['client']['name'];
-            $item_sale['warehouse_name'] = $Sale['warehouse']['name'];
-            $item_sale['GrandTotal'] = $Sale['GrandTotal'];
-            $item_sale['paid_amount'] = $Sale['paid_amount'];
-            $item_sale['due'] = $Sale['GrandTotal'] - $Sale['paid_amount'];
-            $item_sale['payment_status'] = $Sale['payment_statut'];
-
-            $last_sales[] = $item_sale;
-        }
-
-        return response()->json([
-            'products' => $products,
-            'stock_alert' => $stock_alert,
-            'report' => $data,
-            'last_sales' => $last_sales,
-        ]);
-
-    }
-
-    //----------------- Payment Chart js -----------------------\\
-
-    public function Payment_chart($warehouse_id, $array_warehouses_id)
-    {
-
-        $role = Auth::user()->roles()->first();
-        $view_records = Role::findOrFail($role->id)->inRole('record_view');
-
-        // Build an array of the dates we want to show, oldest first
-        $dates = collect();
-        foreach (range(-6, 0) as $i) {
-            $date = Carbon::now()->addDays($i)->format('Y-m-d');
-            $dates->put($date, 0);
-        }
-
-        $date_range = \Carbon\Carbon::today()->subDays(6);
-        // Get the sales counts
-        $Payment_Sale = PaymentSale::with('sale')->where('date', '>=', $date_range)
-            ->where(function ($query) use ($view_records) {
-                if (!$view_records) {
-                    return $query->where('user_id', '=', Auth::user()->id);
-                }
-            })
-            ->where(function ($query) use ($warehouse_id, $array_warehouses_id) {
-                if ($warehouse_id !== 0) {
-                    return $query->whereHas('sale', function ($q) use ($array_warehouses_id, $warehouse_id) {
-                        $q->where('warehouse_id', $warehouse_id);
-                    });
-                }else{
-                    return $query->whereHas('sale', function ($q) use ($array_warehouses_id, $warehouse_id) {
-                        $q->whereIn('warehouse_id', $array_warehouses_id);
-                    });
-
-                }
-            })
-            ->groupBy(DB::raw("DATE_FORMAT(date,'%Y-%m-%d')"))
-            ->orderBy('date', 'asc')
-            ->get([
-                DB::raw(DB::raw("DATE_FORMAT(date,'%Y-%m-%d') as date")),
-                DB::raw('SUM(montant) AS count'),
-            ])
-            ->pluck('count', 'date');
-
-        $Payment_Sale_Returns = PaymentSaleReturns::with('SaleReturn')->where('date', '>=', $date_range)
-            ->where(function ($query) use ($view_records) {
-                if (!$view_records) {
-                    return $query->where('user_id', '=', Auth::user()->id);
-                }
-            })
-            ->where(function ($query) use ($warehouse_id, $array_warehouses_id) {
-                if ($warehouse_id !== 0) {
-                    return $query->whereHas('SaleReturn', function ($q) use ($array_warehouses_id, $warehouse_id) {
-                        $q->where('warehouse_id', $warehouse_id);
-                    });
-                }else{
-                    return $query->whereHas('SaleReturn', function ($q) use ($array_warehouses_id, $warehouse_id) {
-                        $q->whereIn('warehouse_id', $array_warehouses_id);
-                    });
-
-                }
-            })
-            ->groupBy(DB::raw("DATE_FORMAT(date,'%Y-%m-%d')"))
-            ->orderBy('date', 'asc')
-            ->get([
-                DB::raw(DB::raw("DATE_FORMAT(date,'%Y-%m-%d') as date")),
-                DB::raw('SUM(montant) AS count'),
-            ])
-            ->pluck('count', 'date');
-
-        $Payment_Purchases = PaymentPurchase::with('purchase')->where('date', '>=', $date_range)
-            ->where(function ($query) use ($view_records) {
-                if (!$view_records) {
-                    return $query->where('user_id', '=', Auth::user()->id);
-                }
-            })
-            ->where(function ($query) use ($warehouse_id, $array_warehouses_id) {
-                if ($warehouse_id !== 0) {
-                    return $query->whereHas('purchase', function ($q) use ($array_warehouses_id, $warehouse_id) {
-                        $q->where('warehouse_id', $warehouse_id);
-                    });
-                }else{
-                    return $query->whereHas('purchase', function ($q) use ($array_warehouses_id, $warehouse_id) {
-                        $q->whereIn('warehouse_id', $array_warehouses_id);
-                    });
-
-                }
-            })
-            ->groupBy(DB::raw("DATE_FORMAT(date,'%Y-%m-%d')"))
-            ->orderBy('date', 'asc')
-            ->get([
-                DB::raw(DB::raw("DATE_FORMAT(date,'%Y-%m-%d') as date")),
-                DB::raw('SUM(montant) AS count'),
-            ])
-            ->pluck('count', 'date');
-
-        $Payment_Purchase_Returns = PaymentPurchaseReturns::with('PurchaseReturn')->where('date', '>=', $date_range)
-            ->where(function ($query) use ($view_records) {
-                if (!$view_records) {
-                    return $query->where('user_id', '=', Auth::user()->id);
-                }
-            })
-            ->where(function ($query) use ($warehouse_id, $array_warehouses_id) {
-                if ($warehouse_id !== 0) {
-                    return $query->whereHas('PurchaseReturn', function ($q) use ($array_warehouses_id, $warehouse_id) {
-                        $q->where('warehouse_id', $warehouse_id);
-                    });
-                }else{
-                    return $query->whereHas('PurchaseReturn', function ($q) use ($array_warehouses_id, $warehouse_id) {
-                        $q->whereIn('warehouse_id', $array_warehouses_id);
-                    });
-
-                }
-            })
-            ->groupBy(DB::raw("DATE_FORMAT(date,'%Y-%m-%d')"))
-            ->orderBy('date', 'asc')
-            ->get([
-                DB::raw(DB::raw("DATE_FORMAT(date,'%Y-%m-%d') as date")),
-                DB::raw('SUM(montant) AS count'),
-            ])
-            ->pluck('count', 'date');
-
-        $Payment_Expense = Expense::where('date', '>=', $date_range)
-            ->where(function ($query) use ($view_records) {
-                if (!$view_records) {
-                    return $query->where('user_id', '=', Auth::user()->id);
-                }
-            })
-            ->where(function ($query) use ($warehouse_id, $array_warehouses_id) {
-                if ($warehouse_id !== 0) {
-                    return $query->where('warehouse_id', $warehouse_id);
-                }else{
-                    return $query->whereIn('warehouse_id', $array_warehouses_id);
-                }
-            })
-            ->groupBy(DB::raw("DATE_FORMAT(date,'%Y-%m-%d')"))
-            ->orderBy('date', 'asc')
-            ->get([
-                DB::raw(DB::raw("DATE_FORMAT(date,'%Y-%m-%d') as date")),
-                DB::raw('SUM(amount) AS count'),
-            ])
-            ->pluck('count', 'date');
-
-        $paymen_recieved = $this->array_merge_numeric_values($Payment_Sale, $Payment_Purchase_Returns);
-        $payment_sent = $this->array_merge_numeric_values($Payment_Purchases, $Payment_Sale_Returns, $Payment_Expense);
-
-        $dates_recieved = $dates->merge($paymen_recieved);
-        $dates_sent = $dates->merge($payment_sent);
-
-        $data_recieved = [];
-        $data_sent = [];
-        $days = [];
-        foreach ($dates_recieved as $key => $value) {
-            $data_recieved[] = $value;
-            $days[] = $key;
-        }
-
-        foreach ($dates_sent as $key => $value) {
-            $data_sent[] = $value;
-        }
-
-        return response()->json([
-            'payment_sent' => $data_sent,
-            'payment_received' => $data_recieved,
+            'sales_chart_data' => $sales_chart_data,
+            'purchases_chart_data' => $purchases_chart_data,
             'days' => $days,
+
+            'top_clients' => $top_clients,
+            'top_products' => $top_products, 
+
+            'recent_sales_data' => $recent_sales_data, 
+
         ]);
 
+
     }
 
-    //----------------- array merge -----------------------\\
-
-    public function array_merge_numeric_values()
+    public function dashboard_filter(Request $request , $start_date , $end_date)
     {
-        $arrays = func_get_args();
-        $merged = array();
-        foreach ($arrays as $array) {
-            foreach ($array as $key => $value) {
-                if (!is_numeric($value)) {
-                    continue;
-                }
-                if (!isset($merged[$key])) {
-                    $merged[$key] = $value;
-                } else {
-                    $merged[$key] += $value;
-                }
-            }
-        }
-        return $merged;
+
+        $end_date_default = Carbon::today()->format('Y-m-d');
+        $start_date_default = Carbon::today()->format('Y-m-d');
+        
+        $start_date = empty($request->start_date)?$start_date_default:$request->start_date;
+        $end_date = empty($request->end_date)?$end_date_default:$request->end_date;
+
+        $today_sales = Sale::where('deleted_at', '=', null)
+        ->whereDate('date', '>=', $start_date)
+        ->whereDate('date', '<=', $end_date)
+        ->sum('GrandTotal');
+
+        $today_sales = $this->render_price_with_symbol_placement(number_format($today_sales, 2, '.', ','));
+
+
+        $return_sales = SaleReturn::where('deleted_at', '=', null)
+        ->whereDate('date', '>=', $start_date)
+        ->whereDate('date', '<=', $end_date)
+        ->sum('GrandTotal');
+
+        $return_sales = $this->render_price_with_symbol_placement(number_format($return_sales, 2, '.', ','));
+
+
+        $today_purchases = Purchase::where('deleted_at', '=', null)
+        ->whereDate('date', '>=', $start_date)
+        ->whereDate('date', '<=', $end_date)
+        ->sum('GrandTotal');
+
+        $today_purchases = $this->render_price_with_symbol_placement(number_format($today_purchases, 2, '.', ','));
+
+        $return_purchases = PurchaseReturn::where('deleted_at', '=', null)
+        ->whereDate('date', '>=', $start_date)
+        ->whereDate('date', '<=', $end_date)
+        ->sum('GrandTotal');
+
+        $return_purchases = $this->render_price_with_symbol_placement(number_format($return_purchases, 2, '.', ','));
+
+        return response()->json([
+            'today_sales' => $today_sales,
+            'return_sales' => $return_sales,
+            'return_purchases' => $return_purchases,
+            'today_purchases' => $today_purchases,
+
+        ]);
     }
 
+
+    public function dashboard_employee()
+    {
+        return view('dashboard.dashboard_employee');
+
+    }
+
+   
+
+    /**
+     * Show the form for creating a new resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function create()
+    {
+        //
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function store(Request $request)
+    {
+        //
+    }
+
+    /**
+     * Display the specified resource.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function show($id)
+    {
+        //
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function edit($id)
+    {
+        //
+    }
+
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function update(Request $request, $id)
+    {
+        //
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function destroy($id)
+    {
+        //
+    }
+
+    // render_price_with_symbol_placement
+
+    public function render_price_with_symbol_placement($amount) {
+
+        if ($this->symbol_placement == 'before') {
+            return $this->currency . ' ' . $amount;
+        } else {
+            return $amount . ' ' . $this->currency;
+        }
+    }
+
+
+    
 }

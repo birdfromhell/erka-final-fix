@@ -11,7 +11,8 @@ class Transfer extends Model
 
     protected $fillable = [
         'id', 'date','user_id', 'from_warehouse_id', 'to_warehouse_id',
-        'items', 'statut', 'notes', 'GrandTotal', 'discount', 'shipping', 'TaxNet', 'tax_rate',
+        'items', 'statut', 'notes', 'GrandTotal', 'discount', 'shipping', 'TaxNet',
+         'tax_rate','discount_type','discount_percent_total',
         'created_at', 'updated_at', 'deleted_at',
     ];
 
@@ -22,6 +23,7 @@ class Transfer extends Model
         'items' => 'double',
         'GrandTotal' => 'double',
         'discount' => 'double',
+        'discount_percent_total' => 'double',
         'shipping' => 'double',
         'TaxNet' => 'double',
         'tax_rate' => 'double',
@@ -30,7 +32,7 @@ class Transfer extends Model
 
     public function user()
     {
-        return $this->belongsTo('App\Models\User');
+        return $this->hasMany('App\Models\User');
     }
 
     public function details()

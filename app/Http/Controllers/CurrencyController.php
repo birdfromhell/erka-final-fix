@@ -2,137 +2,181 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Currency;
-use App\utils\helpers;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
+use App\Models\Currency;
+use Carbon\Carbon;
+use DataTables;
 
 class CurrencyController extends Controller
 {
+    /**
+     * Display a listing of the resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
 
-    //------------ GET ALL Currency -----------\\
+         //-------------- Get All Categories ---------------\\
 
     public function index(Request $request)
     {
-        $this->authorizeForUser($request->user('api'), 'view', Currency::class);
-        // How many items do you want to display.
-        $perPage = $request->limit;
-        $pageStart = \Request::get('page', 1);
-        // Start displaying items from this number;
-        $offSet = ($pageStart * $perPage) - $perPage;
-        $order = $request->SortField;
-        $dir = $request->SortType;
-        $helpers = new helpers();
+        $user_auth = auth()->user();
+		if ($user_auth->can('currency')){
 
-        $currencies = Currency::where('deleted_at', '=', null)
+            if ($request->ajax()) {
+                $data = Currency::where('deleted_at', '=', null)->orderBy('id', 'desc')->get();
 
-        // Search With Multiple Param
-            ->where(function ($query) use ($request) {
-                return $query->when($request->filled('search'), function ($query) use ($request) {
-                    return $query->where('name', 'LIKE', "%{$request->search}%")
-                        ->orWhere('code', 'LIKE', "%{$request->search}%");
-                });
-            });
-        $totalRows = $currencies->count();
-        if($perPage == "-1"){
-            $perPage = $totalRows;
+                return Datatables::of($data)->addIndexColumn()
+
+                ->addColumn('action', function($row){
+
+                        $btn = '<a id="' .$row->id. '"  class="edit cursor-pointer ul-link-action text-success"
+                        data-toggle="tooltip" data-placement="top" title="Edit"><i class="i-Edit"></i></a>';
+                        $btn .= '&nbsp;&nbsp;';
+
+                        $btn .= '<a id="' .$row->id. '" class="delete cursor-pointer ul-link-action text-danger"
+                        data-toggle="tooltip" data-placement="top" title="Remove"><i class="i-Close-Window"></i></a>';
+                        $btn .= '&nbsp;&nbsp;';
+
+                        return $btn;
+                    })
+                    ->rawColumns(['action'])
+                    ->make(true);
+            }
+
+            return view('settings.currency_list');
+
         }
-        $currencies = $currencies->offset($offSet)
-            ->limit($perPage)
-            ->orderBy($order, $dir)
-            ->get();
-
-        return response()->json([
-            'currencies' => $currencies,
-            'totalRows' => $totalRows,
-        ]);
+        return abort('403', __('You are not authorized'));
+     
+    }
+    
+    /**
+     * Show the form for creating a new resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function create()
+    {
+        //
     }
 
-    //---------------- STORE NEW Currency -------------\\
-
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
     public function store(Request $request)
     {
-        $this->authorizeForUser($request->user('api'), 'create', Currency::class);
+        $user_auth = auth()->user();
+		if ($user_auth->can('currency')){
 
-        request()->validate([
-            'code' => 'required',
-            'name' => 'required',
-            'symbol' => 'required',
-        ]);
+            request()->validate([
+                'code'   => 'required|string|max:255',
+                'name'   => 'required|string|max:255',
+                'symbol' => 'required|string|max:255',
+            ]);
 
-        Currency::create([
-            'name' => $request['name'],
-            'code' => $request['code'],
-            'symbol' => $request['symbol'],
-        ]);
+            Currency::create([
+                'name'   => $request['name'],
+                'code'   => $request['code'],
+                'symbol' => $request['symbol'],
+            ]);
 
-        return response()->json(['success' => true]);
+            return response()->json(['success' => true]);
 
+        }
+        return abort('403', __('You are not authorized'));
     }
 
-    //------------ function show -----------\\
-
-    public function show($id){
+    /**
+     * Display the specified resource.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function show($id)
+    {
         //
-        
-        }
+    }
 
-    //---------------- UPDATE Currency -------------\\
+    /**
+     * Show the form for editing the specified resource.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function edit($id)
+    {
+        //
+    }
 
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
     public function update(Request $request, $id)
     {
-        $this->authorizeForUser($request->user('api'), 'update', Currency::class);
+        $user_auth = auth()->user();
+		if ($user_auth->can('currency')){
 
-        request()->validate([
-            'code' => 'required',
-            'name' => 'required',
-            'symbol' => 'required',
-        ]);
+            request()->validate([
+                'code'   => 'required|string|max:255',
+                'name'   => 'required|string|max:255',
+                'symbol' => 'required|string|max:255',
+            ]);
 
-        Currency::whereId($id)->update([
-            'name' => $request['name'],
-            'code' => $request['code'],
-            'symbol' => $request['symbol'],
-        ]);
+            Currency::whereId($id)->update([
+                'name'   => $request['name'],
+                'code'   => $request['code'],
+                'symbol' => $request['symbol'],
+            ]);
 
-        return response()->json(['success' => true]);
+            return response()->json(['success' => true]);
 
+        }
+        return abort('403', __('You are not authorized'));
     }
 
-    //------------ Delete Currency -----------\\
-
-    public function destroy(Request $request, $id)
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function destroy($id)
     {
-        $this->authorizeForUser($request->user('api'), 'delete', Currency::class);
+        $user_auth = auth()->user();
+		if ($user_auth->can('currency')){
 
-        Currency::whereId($id)->update([
-            'deleted_at' => Carbon::now(),
-        ]);
-
-        return response()->json(['success' => true]);
-    }
-
-    //-------------- Delete by selection  ---------------\\
-
-    public function delete_by_selection(Request $request)
-    {
-        $this->authorizeForUser($request->user('api'), 'delete', Currency::class);
-        $selectedIds = $request->selectedIds;
-
-        foreach ($selectedIds as $Currency_id) {
-            Currency::whereId($Currency_id)->update([
+            Currency::whereId($id)->update([
                 'deleted_at' => Carbon::now(),
             ]);
+
+            return response()->json(['success' => true]);
+
         }
-        return response()->json(['success' => true]);
+        return abort('403', __('You are not authorized'));
     }
 
-    //------------ GET ALL Currency WITHOUT PAGINATE -----------\\
+      //-------------- Delete by selection  ---------------\\
 
-    public function Get_Currencies()
-    {
-        $Currencies = Currency::where('deleted_at', null)->get(['id', 'name']);
-        return response()->json($Currencies);
-    }
-
+      public function delete_by_selection(Request $request)
+      {
+         $user_auth = auth()->user();
+         if($user_auth->can('currency')){
+             $selectedIds = $request->selectedIds;
+     
+             foreach ($selectedIds as $currency_id) {
+                Currency::whereId($currency_id)->update([
+                    'deleted_at' => Carbon::now(),
+                ]);
+             }
+             return response()->json(['success' => true]);
+         }
+         return abort('403', __('You are not authorized'));
+      }
 }

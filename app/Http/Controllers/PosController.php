@@ -1,62 +1,142 @@
 <?php
 
 namespace App\Http\Controllers;
+
+use Illuminate\Contracts\Support\Renderable;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
 use App\Models\Account;
-use App\Models\User;
-use App\Models\UserWarehouse;
-use App\Models\Brand;
-use App\Models\Category;
-use App\Models\Client;
-use App\Models\PaymentSale;
+use App\Models\PaymentMethod;
+use App\Mail\SaleMail;
 use App\Models\Product;
-use App\Models\Setting;
-use App\Models\PosSetting;
-use App\Models\ProductVariant;
-use App\Models\product_warehouse;
-use App\Models\PaymentWithCreditCard;
-use App\Models\Role;
-use App\Models\Unit;
+use App\Models\Category;
+use App\Models\Brand;
+use App\Models\PaymentSale;
 use App\Models\Sale;
 use App\Models\SaleDetail;
-use App\Models\DraftSale;
-use App\Models\DraftSaleDetail;
+use App\Models\Unit;
+use App\Models\ProductVariant;
+use App\Models\product_warehouse;
 use App\Models\Warehouse;
-use App\utils\helpers;
-use Carbon\Carbon;
-use DB;
-use Illuminate\Http\Request;
+use App\Models\User;
+use App\Models\UserWarehouse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use App\Models\Client;
+use App\Models\Setting;
+use App\Models\PosSetting;
+use App\Models\Currency;
+use Carbon\Carbon;
+use DataTables;
 use Stripe;
+use Config;
+use DB;
+use PDF;
+use App\utils\helpers;
 
-class PosController extends BaseController
+class PosController extends Controller
 {
+
+    protected $currency;
+    protected $symbol_placement;
+
+    public function __construct()
+    {
+        $helpers = new helpers();
+        $this->currency = $helpers->Get_Currency();
+        $this->symbol_placement = $helpers->get_symbol_placement();
+
+    }
+
+
+     //--------------------- index  ------------------------\\
+
+     public function index(Request $request)
+     {
+
+        $user_auth = auth()->user();
+
+       if ($user_auth->can('pos')){
+
+            $settings = Setting::where('deleted_at', '=', null)->first();
+
+            if ($settings->warehouse_id) {
+                if (Warehouse::where('id', $settings->warehouse_id)->where('deleted_at', '=', null)->first()) {
+                    $default_warehouse = $settings->warehouse_id;
+                } else {
+                    $default_warehouse = '';
+                }
+            } else {
+                $default_warehouse = '';
+            }
+
+            if ($settings->client_id) {
+                if (Client::where('id', $settings->client_id)->where('deleted_at', '=', null)->first()) {
+                    $default_Client = $settings->client_id;
+                } else {
+                    $default_Client = '';
+                }
+            } else {
+                $default_Client = '';
+            }
+            
+            $clients = Client::where('deleted_at', '=', null)->get(['id', 'username']);
+            $payment_methods = PaymentMethod::where('deleted_at', '=', null)->orderBy('id', 'desc')->get(['id','title']);
+            $accounts = Account::where('deleted_at', '=', null)->orderBy('id', 'desc')->get(['id','account_name']);
+
+            //get warehouses assigned to user
+            if($user_auth->is_all_warehouses){
+                $warehouses = Warehouse::where('deleted_at', '=', null)->get(['id', 'name']);
+            }else{
+                $warehouses_id = UserWarehouse::where('user_id', $user_auth->id)->pluck('warehouse_id')->toArray();
+                $warehouses = Warehouse::where('deleted_at', '=', null)->whereIn('id', $warehouses_id)->get(['id', 'name']);
+            } 
+
+            $totalRows = '';
+            $data = [];
+            $product_autocomplete = [];
+
+           
+            return view('sales.pos',[
+                'clients'            => $clients,
+                'payment_methods'    => $payment_methods,
+                'accounts'           => $accounts,
+                'warehouses'         => $warehouses,
+                'settings'           => $settings,
+                'default_warehouse'  => $default_warehouse,
+                'default_Client'     => $default_Client,
+                'totalRows'          => $totalRows,
+            ]);
+                 
+
+        }else{
+            return abort('403', __('You are not authorized'));
+        }
+     }
 
     //------------ Create New  POS --------------\\
 
     public function CreatePOS(Request $request)
     {
-        $this->authorizeForUser($request->user('api'), 'Sales_pos', Sale::class);
-
         request()->validate([
             'client_id' => 'required',
             'warehouse_id' => 'required',
-            'payment.amount' => 'required',
         ]);
 
         $item = \DB::transaction(function () use ($request) {
             $helpers = new helpers();
-            $role = Auth::user()->roles()->first();
-            $view_records = Role::findOrFail($role->id)->inRole('record_view');
             $order = new Sale;
 
             $order->is_pos = 1;
-            $order->date = Carbon::now();
-            $order->Ref = app('App\Http\Controllers\SalesController')->getNumberOrder();
+            $order->date = $request->date;
+            $order->Ref = 'SO-' . date("Ymd") . '-'. date("his");
             $order->client_id = $request->client_id;
             $order->warehouse_id = $request->warehouse_id;
             $order->tax_rate = $request->tax_rate;
             $order->TaxNet = $request->TaxNet;
             $order->discount = $request->discount;
+            $order->discount_type = $request->discount_type;
+            $order->discount_percent_total = $request->discount_percent_total;
             $order->shipping = $request->shipping;
             $order->GrandTotal = $request->GrandTotal;
             $order->notes = $request->notes;
@@ -72,22 +152,22 @@ class PosController extends BaseController
                 $unit = Unit::where('id', $value['sale_unit_id'])
                     ->first();
                 $orderDetails[] = [
-                    'date' => Carbon::now(),
-                    'sale_id' => $order->id,
-                    'sale_unit_id' =>  $value['sale_unit_id'],
-                    'quantity' => $value['quantity'],
-                    'product_id' => $value['product_id'],
-                    'product_variant_id' => $value['product_variant_id'],
-                    'total' => $value['subtotal'],
-                    'price' => $value['Unit_price'],
-                    'TaxNet' => $value['tax_percent'],
-                    'tax_method' => $value['tax_method'],
-                    'discount' => $value['discount'],
-                    'discount_method' => $value['discount_Method'],
-                    'imei_number' => $value['imei_number'],
+                    'date'               => $order->date,
+                    'sale_id'            => $order->id,
+                    'sale_unit_id'       => $value['sale_unit_id']?$value['sale_unit_id']:NULL,
+                    'quantity'           => $value['quantity'],
+                    'product_id'         => $value['product_id'],
+                    'product_variant_id' => $value['product_variant_id']?$value['product_variant_id']:NULL,
+                    'total'              => $value['subtotal'],
+                    'price'              => $value['Unit_price'],
+                    'TaxNet'             => $value['tax_percent'],
+                    'tax_method'         => $value['tax_method'],
+                    'discount'           => $value['discount'],
+                    'discount_method'    => $value['discount_Method'],
+                    'imei_number'        => $value['imei_number'],
                 ];
 
-                if ($value['product_variant_id'] !== null) {
+                if ($value['product_variant_id']) {
                     $product_warehouse = product_warehouse::where('warehouse_id', $order->warehouse_id)
                         ->where('product_id', $value['product_id'])->where('product_variant_id', $value['product_variant_id'])
                         ->first();
@@ -118,16 +198,11 @@ class PosController extends BaseController
 
             SaleDetail::insert($orderDetails);
 
-            $sale = Sale::findOrFail($order->id);
-            // Check If User Has Permission view All Records
-            if (!$view_records) {
-                // Check If User->id === sale->id
-                $this->authorizeForUser($request->user('api'), 'check_record', $sale);
-            }
+            if($request['montant'] > 0){
 
-            try {
+                $sale = Sale::findOrFail($order->id);
 
-                $total_paid = $sale->paid_amount + $request['amount'];
+                $total_paid = $sale->paid_amount + $request['montant'];
                 $due = $sale->GrandTotal - $total_paid;
 
                 if ($due === 0.0 || $due < 0.0) {
@@ -137,140 +212,36 @@ class PosController extends BaseController
                 } else if ($due == $sale->GrandTotal) {
                     $payment_statut = 'unpaid';
                 }
-                              
-                if($request['amount'] > 0){
-                    if ($request->payment['Reglement'] == 'credit card') {
-                        $Client = Client::whereId($request->client_id)->first();
-                        Stripe\Stripe::setApiKey(config('app.STRIPE_SECRET'));
 
-                        // Check if the payment record exists
-                        $PaymentWithCreditCard = PaymentWithCreditCard::where('customer_id', $request->client_id)->first();
-                        if (!$PaymentWithCreditCard) {
+                PaymentSale::create([
+                    'sale_id'    => $order->id,
+                    'account_id' => $request['account_id']?$request['account_id']:NULL,
+                    'Ref'        => $this->generate_random_code_payment(),
+                    'date'       => $request['date'],
+                    'payment_method_id'  => $request['payment_method_id'],
+                    'montant'    => $request['montant'],
+                    'change'     => 0,
+                    'notes'      => $request['payment_notes'],
+                    'user_id'    => Auth::user()->id,
+                ]);
 
-                            // Create a new customer and charge the customer with a new credit card
-                            $customer = \Stripe\Customer::create([
-                                'source' => $request->token,
-                                'email'  => $Client->email,
-                                'name'   => $Client->name,
-                            ]);
+                $account = Account::where('id', $request['account_id'])->exists();
 
-                            // Charge the Customer instead of the card:
-                            $charge = \Stripe\Charge::create([
-                                'amount'   => $request['amount'] * 100,
-                                'currency' => 'usd',
-                                'customer' => $customer->id,
-                            ]);
-                            $PaymentCard['customer_stripe_id'] = $customer->id;
-
-                        // Check if the payment record not exists
-                        } else {
-
-                             // Retrieve the customer ID and card ID
-                            $customer_id = $PaymentWithCreditCard->customer_stripe_id;
-                            $card_id = $request->card_id;
-
-                            // Charge the customer with the new credit card or the selected card
-                            if ($request->is_new_credit_card || $request->is_new_credit_card == 'true' || $request->is_new_credit_card === 1) {
-                                // Retrieve the customer
-                                $customer = \Stripe\Customer::retrieve($customer_id);
-
-                                // Create New Source
-                                $card = \Stripe\Customer::createSource(
-                                    $customer_id,
-                                    [
-                                      'source' => $request->token,
-                                    ]
-                                  );
-
-                                $charge = \Stripe\Charge::create([
-                                    'amount'   => $request['amount'] * 100,
-                                    'currency' => 'usd',
-                                    'customer' => $customer_id,
-                                    'source'   => $card->id,
-                                ]);
-                                $PaymentCard['customer_stripe_id'] = $customer_id;
-
-                            } else {
-                                $charge = \Stripe\Charge::create([
-                                    'amount'   => $request['amount'] * 100,
-                                    'currency' => 'usd',
-                                    'customer' => $customer_id,
-                                    'source'   => $card_id,
-                                ]);
-                                $PaymentCard['customer_stripe_id'] = $customer_id;
-                            }
-                        }
-
-                        $PaymentSale            = new PaymentSale();
-                        $PaymentSale->sale_id   = $order->id;
-                        $PaymentSale->Ref       = app('App\Http\Controllers\PaymentSalesController')->getNumberOrder();
-                        $PaymentSale->date      = Carbon::now();
-                        $PaymentSale->Reglement = $request->payment['Reglement'];
-                        $PaymentSale->montant   = $request['amount'];
-                        $PaymentSale->change    = $request['change'];
-                        $PaymentSale->notes     = $request->payment['notes'];
-                        $PaymentSale->user_id   = Auth::user()->id;
-                        $PaymentSale->account_id   = $request->payment['account_id']?$request->payment['account_id']:NULL;
-
-                        $PaymentSale->save();
-
-                        $account = Account::where('id', $request->payment['account_id'])->exists();
-
-                        if ($account) {
-                            // Account exists, perform the update
-                            $account = Account::find($request->payment['account_id']);
-                            $account->update([
-                                'balance' => $account->balance + $request['amount'],
-                            ]);
-                        }
-
-                        $sale->update([
-                            'paid_amount'    => $total_paid,
-                            'payment_statut' => $payment_statut,
-                        ]);
-
-                        $PaymentCard['customer_id'] = $request->client_id;
-                        $PaymentCard['payment_id']  = $PaymentSale->id;
-                        $PaymentCard['charge_id']   = $charge->id;
-                        PaymentWithCreditCard::create($PaymentCard);
-
-                        // Paying Method Cash
-                    } else {
-
-                        PaymentSale::create([
-                            'sale_id' => $order->id,
-                            'account_id' => $request->payment['account_id']?$request->payment['account_id']:NULL,
-                            'Ref' => app('App\Http\Controllers\PaymentSalesController')->getNumberOrder(),
-                            'date' => Carbon::now(),
-                            'Reglement' => $request->payment['Reglement'],
-                            'montant' => $request['amount'],
-                            'change' => $request['change'],
-                            'notes' => $request->payment['notes'],
-                            'user_id' => Auth::user()->id,
-                        ]);
-
-                        $account = Account::where('id', $request->payment['account_id'])->exists();
-
-                        if ($account) {
-                            // Account exists, perform the update
-                            $account = Account::find($request->payment['account_id']);
-                            $account->update([
-                                'balance' => $account->balance + $request['amount'],
-                            ]);
-                        }
-
-                        $sale->update([
-                            'paid_amount' => $total_paid,
-                            'payment_statut' => $payment_statut,
-                        ]);
-                    }
-
+                if ($account) {
+                    // Account exists, perform the update
+                    $account = Account::find($request['account_id']);
+                    $account->update([
+                        'initial_balance' => $account->initial_balance + $request['montant'],
+                    ]);
                 }
-              
-            } catch (Exception $e) {
-                return response()->json(['message' => $e->getMessage()], 500);
-            }
 
+                $sale->update([
+                    'paid_amount' => $total_paid,
+                    'payment_statut' => $payment_statut,
+                ]);
+
+            }
+           
             return $order->id;
 
         }, 10);
@@ -279,656 +250,66 @@ class PosController extends BaseController
 
     }
 
-    //------------- get_draft_sales -----------\\
-
-    public function get_draft_sales(request $request)
+      // generate_random_code_payment
+    public function generate_random_code_payment()
     {
-        $this->authorizeForUser($request->user('api'), 'Sales_pos', Sale::class);
-        $role = Auth::user()->roles()->first();
-        $view_records = Role::findOrFail($role->id)->inRole('record_view');
-        // How many items do you want to display.
-        $perPage = $request->limit;
+        $gen_code = 'INV/SL-' . date("Ymd") . '-'. substr(number_format(time() * mt_rand(), 0, '', ''), 0, 6);
 
-        $pageStart = \Request::get('page', 1);
-        // Start displaying items from this number;
-        $offSet = ($pageStart * $perPage) - $perPage;
-        $order = 'id';
-        $dir = 'DESC';
-        $helpers = new helpers();
-        
-        $data = array();
-
-        // Check If User Has Permission View  All Records
-        $draft_sales = DraftSale::with('client', 'warehouse','user')
-            ->where('deleted_at', '=', null)
-            ->where(function ($query) use ($view_records) {
-                if (!$view_records) {
-                    return $query->where('user_id', '=', Auth::user()->id);
-                }
-            });
-    
-
-        $totalRows = $draft_sales->count();
-        if($perPage == "-1"){
-            $perPage = $totalRows;
-        }
-        
-        $drafts = $draft_sales->offset($offSet)
-            ->limit($perPage)
-            ->orderBy($order, $dir)
-            ->get();
-
-        foreach ($drafts as $draft) {
-            
-            $item['id'] = $draft['id'];
-            $item['date'] = $draft['date'];
-            $item['Ref'] = $draft['Ref'];
-            $item['warehouse_name'] = $draft['warehouse']['name'];
-            $item['client_name'] = $draft['client']['name'];
-            $item['GrandTotal'] = number_format($draft['GrandTotal'], 2, '.', '');
-            $item['actions'] = '';
-            
-            $data[] = $item;
-        }
-        
-    
-        return response()->json([
-            'totalRows' => $totalRows,
-            'draft_sales' => $data,
-        ]);
-    }
-  
-
-    //------------ Create Draft --------------\\
-
-    public function CreateDraft(Request $request)
-    {
-        $this->authorizeForUser($request->user('api'), 'Sales_pos', Sale::class);
-
-        request()->validate([
-            'client_id' => 'required',
-            'warehouse_id' => 'required',
-        ]);
-
-        \DB::transaction(function () use ($request) {
-            $helpers = new helpers();
-            $role = Auth::user()->roles()->first();
-            $view_records = Role::findOrFail($role->id)->inRole('record_view');
-            $order = new DraftSale;
-
-            $order->date = Carbon::now();
-            $order->Ref = $this->getNumberOrderDraft();
-            $order->client_id = $request->client_id;
-            $order->warehouse_id = $request->warehouse_id;
-            $order->tax_rate = $request->tax_rate;
-            $order->TaxNet = $request->TaxNet;
-            $order->discount = $request->discount;
-            $order->shipping = $request->shipping;
-            $order->GrandTotal = $request->GrandTotal;
-            $order->user_id = Auth::user()->id;
-
-            $order->save();
-
-            $data = $request['details'];
-            foreach ($data as $key => $value) {
-
-                $unit = Unit::where('id', $value['sale_unit_id'])->first();
-                $orderDetails[] = [
-                'date' => Carbon::now(),
-                'draft_sale_id' => $order->id,
-                'sale_unit_id' =>  $value['sale_unit_id'],
-                'quantity' => $value['quantity'],
-                'product_id' => $value['product_id'],
-                'product_variant_id' => $value['product_variant_id'],
-                'total' => $value['subtotal'],
-                'price' => $value['Unit_price'],
-                'TaxNet' => $value['tax_percent'],
-                'tax_method' => $value['tax_method'],
-                'discount' => $value['discount'],
-                'discount_method' => $value['discount_Method'],
-                'imei_number' => $value['imei_number'],
-                ];
-            }
-
-            DraftSaleDetail::insert($orderDetails);
-
-        }, 10);
-
-        return response()->json(['success' => true]);
-    }
-
-     //------------ remove_draft_sale -------------\\
-
-     public function remove_draft_sale(Request $request, $id)
-     {
-        $this->authorizeForUser($request->user('api'), 'Sales_pos', Sale::class);
- 
-         \DB::transaction(function () use ($id, $request) {
- 
-             $role = Auth::user()->roles()->first();
-             $view_records = Role::findOrFail($role->id)->inRole('record_view');
-             $draft = DraftSale::findOrFail($id);
- 
-             // Check If User Has Permission view All Records
-             if (!$view_records) {
-                 // Check If User->id === draft->id
-                 $this->authorizeForUser($request->user('api'), 'check_record', $draft);
-             }
-             $draft->details()->delete();
-             $draft->update([
-                 'deleted_at' => Carbon::now(),
-             ]);
- 
-         }, 10);
- 
-         return response()->json(['success' => true]);
-     }
-
-      //------------ submit_sale_from_draft --------------\\
-
-    public function submit_sale_from_draft(Request $request)
-    {
-        $this->authorizeForUser($request->user('api'), 'Sales_pos', Sale::class);
-
-        request()->validate([
-            'client_id' => 'required',
-            'warehouse_id' => 'required',
-            'payment.amount' => 'required',
-        ]);
-
-        $draft = DraftSale::findOrFail($request['draft_sale_id']);
-        if($draft){
-
-            $item = \DB::transaction(function () use ($request, $draft) {
-                $helpers = new helpers();
-                $role = Auth::user()->roles()->first();
-                $view_records = Role::findOrFail($role->id)->inRole('record_view');
-                $order = new Sale;
-
-                $order->is_pos = 1;
-                $order->date = Carbon::now();
-                $order->Ref = app('App\Http\Controllers\SalesController')->getNumberOrder();
-                $order->client_id = $request->client_id;
-                $order->warehouse_id = $request->warehouse_id;
-                $order->tax_rate = $request->tax_rate;
-                $order->TaxNet = $request->TaxNet;
-                $order->discount = $request->discount;
-                $order->shipping = $request->shipping;
-                $order->GrandTotal = $request->GrandTotal;
-                $order->notes = $request->notes;
-                $order->statut = 'completed';
-                $order->payment_statut = 'unpaid';
-                $order->user_id = Auth::user()->id;
-
-                $order->save();
-
-                $data = $request['details'];
-                foreach ($data as $key => $value) {
-
-                    $unit = Unit::where('id', $value['sale_unit_id'])
-                        ->first();
-                    $orderDetails[] = [
-                        'date' => Carbon::now(),
-                        'sale_id' => $order->id,
-                        'sale_unit_id' =>  $value['sale_unit_id'],
-                        'quantity' => $value['quantity'],
-                        'product_id' => $value['product_id'],
-                        'product_variant_id' => $value['product_variant_id'],
-                        'total' => $value['subtotal'],
-                        'price' => $value['Unit_price'],
-                        'TaxNet' => $value['tax_percent'],
-                        'tax_method' => $value['tax_method'],
-                        'discount' => $value['discount'],
-                        'discount_method' => $value['discount_Method'],
-                        'imei_number' => $value['imei_number'],
-                    ];
-
-                    if ($value['product_variant_id'] !== null) {
-                        $product_warehouse = product_warehouse::where('warehouse_id', $order->warehouse_id)
-                            ->where('product_id', $value['product_id'])->where('product_variant_id', $value['product_variant_id'])
-                            ->first();
-
-                        if ($unit && $product_warehouse) {
-                            if ($unit->operator == '/') {
-                                $product_warehouse->qte -= $value['quantity'] / $unit->operator_value;
-                            } else {
-                                $product_warehouse->qte -= $value['quantity'] * $unit->operator_value;
-                            }
-                            $product_warehouse->save();
-                        }
-
-                    } else {
-                        $product_warehouse = product_warehouse::where('warehouse_id', $order->warehouse_id)
-                            ->where('product_id', $value['product_id'])
-                            ->first();
-                        if ($unit && $product_warehouse) {
-                            if ($unit->operator == '/') {
-                                $product_warehouse->qte -= $value['quantity'] / $unit->operator_value;
-                            } else {
-                                $product_warehouse->qte -= $value['quantity'] * $unit->operator_value;
-                            }
-                            $product_warehouse->save();
-                        }
-                    }
-                }
-
-                SaleDetail::insert($orderDetails);
-
-                $sale = Sale::findOrFail($order->id);
-                // Check If User Has Permission view All Records
-                if (!$view_records) {
-                    // Check If User->id === sale->id
-                    $this->authorizeForUser($request->user('api'), 'check_record', $sale);
-                }
-
-                try {
-
-                    $total_paid = $sale->paid_amount + $request['amount'];
-                    $due = $sale->GrandTotal - $total_paid;
-
-                    if ($due === 0.0 || $due < 0.0) {
-                        $payment_statut = 'paid';
-                    } else if ($due != $sale->GrandTotal) {
-                        $payment_statut = 'partial';
-                    } else if ($due == $sale->GrandTotal) {
-                        $payment_statut = 'unpaid';
-                    }
-                                
-                    if($request['amount'] > 0){
-                        if ($request->payment['Reglement'] == 'credit card') {
-                            $Client = Client::whereId($request->client_id)->first();
-                            Stripe\Stripe::setApiKey(config('app.STRIPE_SECRET'));
-
-                            // Check if the payment record exists
-                            $PaymentWithCreditCard = PaymentWithCreditCard::where('customer_id', $request->client_id)->first();
-                            if (!$PaymentWithCreditCard) {
-
-                                // Create a new customer and charge the customer with a new credit card
-                                $customer = \Stripe\Customer::create([
-                                    'source' => $request->token,
-                                    'email'  => $Client->email,
-                                    'name'   => $Client->name,
-                                ]);
-
-                                // Charge the Customer instead of the card:
-                                $charge = \Stripe\Charge::create([
-                                    'amount'   => $request['amount'] * 100,
-                                    'currency' => 'usd',
-                                    'customer' => $customer->id,
-                                ]);
-                                $PaymentCard['customer_stripe_id'] = $customer->id;
-
-                            // Check if the payment record not exists
-                            } else {
-
-                                // Retrieve the customer ID and card ID
-                                $customer_id = $PaymentWithCreditCard->customer_stripe_id;
-                                $card_id = $request->card_id;
-
-                                // Charge the customer with the new credit card or the selected card
-                                if ($request->is_new_credit_card || $request->is_new_credit_card == 'true' || $request->is_new_credit_card === 1) {
-                                    // Retrieve the customer
-                                    $customer = \Stripe\Customer::retrieve($customer_id);
-
-                                    // Create New Source
-                                    $card = \Stripe\Customer::createSource(
-                                        $customer_id,
-                                        [
-                                        'source' => $request->token,
-                                        ]
-                                    );
-
-                                    $charge = \Stripe\Charge::create([
-                                        'amount'   => $request['amount'] * 100,
-                                        'currency' => 'usd',
-                                        'customer' => $customer_id,
-                                        'source'   => $card->id,
-                                    ]);
-                                    $PaymentCard['customer_stripe_id'] = $customer_id;
-
-                                } else {
-                                    $charge = \Stripe\Charge::create([
-                                        'amount'   => $request['amount'] * 100,
-                                        'currency' => 'usd',
-                                        'customer' => $customer_id,
-                                        'source'   => $card_id,
-                                    ]);
-                                    $PaymentCard['customer_stripe_id'] = $customer_id;
-                                }
-                            }
-
-                            $PaymentSale            = new PaymentSale();
-                            $PaymentSale->sale_id   = $order->id;
-                            $PaymentSale->Ref       = app('App\Http\Controllers\PaymentSalesController')->getNumberOrder();
-                            $PaymentSale->date      = Carbon::now();
-                            $PaymentSale->Reglement = $request->payment['Reglement'];
-                            $PaymentSale->montant   = $request['amount'];
-                            $PaymentSale->change    = $request['change'];
-                            $PaymentSale->notes     = $request->payment['notes'];
-                            $PaymentSale->user_id   = Auth::user()->id;
-                            $PaymentSale->account_id   = $request->payment['account_id']?$request->payment['account_id']:NULL;
-
-                            $PaymentSale->save();
-
-                            $account = Account::where('id', $request->payment['account_id'])->exists();
-
-                            if ($account) {
-                                // Account exists, perform the update
-                                $account = Account::find($request->payment['account_id']);
-                                $account->update([
-                                    'balance' => $account->balance + $request['amount'],
-                                ]);
-                            }
-
-                            $sale->update([
-                                'paid_amount'    => $total_paid,
-                                'payment_statut' => $payment_statut,
-                            ]);
-
-                            $PaymentCard['customer_id'] = $request->client_id;
-                            $PaymentCard['payment_id']  = $PaymentSale->id;
-                            $PaymentCard['charge_id']   = $charge->id;
-                            PaymentWithCreditCard::create($PaymentCard);
-
-                            // Paying Method Cash
-                        } else {
-
-                            PaymentSale::create([
-                                'sale_id' => $order->id,
-                                'account_id' => $request->payment['account_id']?$request->payment['account_id']:NULL,
-                                'Ref' => app('App\Http\Controllers\PaymentSalesController')->getNumberOrder(),
-                                'date' => Carbon::now(),
-                                'Reglement' => $request->payment['Reglement'],
-                                'montant' => $request['amount'],
-                                'change' => $request['change'],
-                                'notes' => $request->payment['notes'],
-                                'user_id' => Auth::user()->id,
-                            ]);
-
-                            $account = Account::where('id', $request->payment['account_id'])->exists();
-
-                            if ($account) {
-                                // Account exists, perform the update
-                                $account = Account::find($request->payment['account_id']);
-                                $account->update([
-                                    'balance' => $account->balance + $request['amount'],
-                                ]);
-                            }
-
-                            $sale->update([
-                                'paid_amount' => $total_paid,
-                                'payment_statut' => $payment_statut,
-                            ]);
-                        }
-
-                    }
-                
-                } catch (Exception $e) {
-                    return response()->json(['message' => $e->getMessage()], 500);
-                }
-
-                $draft->details()->delete();
-                $draft->update([
-                    'deleted_at' => Carbon::now(),
-                ]);
-
-                return $order->id;
-
-            }, 10);
-
-            return response()->json(['success' => true, 'id' => $item]);
-        }else{
-            return response()->json(['success' => false], 404);
-        }
-
-    }
-
-    //--------------------- data_draft_convert_sale ------------------------\\
-
-    public function data_draft_convert_sale(Request $request, $id)
-    {
-        $this->authorizeForUser($request->user('api'), 'Sales_pos', Sale::class);
-        $clients = Client::where('deleted_at', '=', null)->get(['id', 'name']);
-        $settings = Setting::where('deleted_at', '=', null)->with('Client')->first();
-        $accounts = Account::where('deleted_at', '=', null)->orderBy('id', 'desc')->get(['id','account_name']);
-
-        $draft_sale_data = DraftSale::with('details.product.unitSale')->where('deleted_at', '=', null)->findOrFail($id);
-
-          //get warehouses assigned to user
-          $user_auth = auth()->user();
-          if($user_auth->is_all_warehouses){
-             $warehouses = Warehouse::where('deleted_at', '=', null)->get(['id', 'name']);
-
-          }else{
-             $warehouses_id = UserWarehouse::where('user_id', $user_auth->id)->pluck('warehouse_id')->toArray();
-             $warehouses = Warehouse::where('deleted_at', '=', null)->whereIn('id', $warehouses_id)->get(['id', 'name']);
-          }
-        
-
-        if ($draft_sale_data->client_id) {
-            if (Client::where('id', $draft_sale_data->client_id)->where('deleted_at', '=', null)->first()) {
-                $sale['client_id'] = $draft_sale_data->client_id;
-                $client_name = $draft_sale_data['Client']->name;
-            } else {
-                $sale['client_id'] = '';
-                $client_name = '';
-            }
+        if (PaymentSale::where('Ref', $gen_code)->exists()) {
+            $this->generate_random_code_payment();
         } else {
-            $sale['client_id'] = '';
-            $client_name = '';
-        }
-
-        if ($draft_sale_data->warehouse_id) {
-            if (Warehouse::where('id', $draft_sale_data->warehouse_id)->where('deleted_at', '=', null)->first()) {
-                $sale['warehouse_id'] = $draft_sale_data->warehouse_id;
-            } else {
-                $sale['warehouse_id'] = '';
-            }
-        } else {
-            $sale['warehouse_id'] = '';
-        }
-
-        $sale['tax_rate'] = $draft_sale_data->tax_rate;
-        $sale['TaxNet']   = $draft_sale_data->TaxNet;
-        $sale['discount'] = $draft_sale_data->discount;
-        $sale['shipping'] = $draft_sale_data->shipping;
-        $GrandTotal = $draft_sale_data->GrandTotal;
-
-        $detail_id = 0;
-        foreach ($draft_sale_data['details'] as $detail) {
-
-            //check if detail has sale_unit_id Or Null
-            if($detail->sale_unit_id !== null){
-                $unit = Unit::where('id', $detail->sale_unit_id)->first();
-                $data['no_unit'] = 1;
-            }else{
-                $product_unit_sale_id = Product::with('unitSale')
-                ->where('id', $detail->product_id)
-                ->first();
-
-                if($product_unit_sale_id['unitSale']){
-                    $unit = Unit::where('id', $product_unit_sale_id['unitSale']->id)->first();
-                }{
-                    $unit = NULL;
-                }
-
-                $data['no_unit'] = 0;
-            }
-
-    
-            if ($detail->product_variant_id) {
-                $item_product = product_warehouse::where('product_id', $detail->product_id)
-                    ->where('deleted_at', '=', null)
-                    ->where('product_variant_id', $detail->product_variant_id)
-                    ->where('warehouse_id', $draft_sale_data->warehouse_id)
-                    ->first();
-
-                $productsVariants = ProductVariant::where('product_id', $detail->product_id)
-                    ->where('id', $detail->product_variant_id)->first();
-
-                $item_product ? $data['del'] = 0 : $data['del'] = 1;
-                $data['product_variant_id'] = $detail->product_variant_id;
-                $data['code'] = $productsVariants->code;
-                $data['name'] = '['.$productsVariants->name . ']' . $detail['product']['name'];
-                
-                if ($unit && $unit->operator == '/') {
-                $stock = $item_product ? $item_product->qte * $unit->operator_value : 0;
-                } else if ($unit && $unit->operator == '*') {
-                $stock = $item_product ? $item_product->qte / $unit->operator_value : 0;
-                } else {
-                $stock = 0;
-                }
-
-            } else {
-                $item_product = product_warehouse::where('product_id', $detail->product_id)
-                    ->where('deleted_at', '=', null)->where('warehouse_id', $draft_sale_data->warehouse_id)
-                    ->where('product_variant_id', '=', null)->first();
-
-                $item_product ? $data['del'] = 0 : $data['del'] = 1;
-                $data['product_variant_id'] = null;
-                $data['code'] = $detail['product']['code'];
-                $data['name'] = $detail['product']['name'];
-
-                if ($unit && $unit->operator == '/') {
-                    $stock= $item_product ? $item_product->qte * $unit->operator_value : 0;
-                } else if ($unit && $unit->operator == '*') {
-                $stock = $item_product ? $item_product->qte / $unit->operator_value : 0;
-                } else {
-                $stock = 0;
-                }
-
-            }
-            
-            $data['id'] = $detail->id;
-            $data['fix_stock'] = $detail['product']['type'] !='is_service'?$stock:'---';
-            $data['current'] = $detail['product']['type'] !='is_service'?$stock:'---';
-
-            $data['product_type'] = $detail['product']['type'];
-            $data['detail_id'] = $detail_id += 1;
-            $data['product_id'] = $detail->product_id;
-            $data['total'] = $detail->total;
-            $data['quantity'] = $detail->quantity;
-            $data['qte_copy'] = $detail->quantity;
-            $data['etat'] = 'current';
-            $data['unitSale'] = $unit?$unit->ShortName:'';
-            $data['sale_unit_id'] = $unit?$unit->id:'';
-            $data['is_imei'] = $detail['product']['is_imei'];
-            $data['imei_number'] = $detail->imei_number;
-            $data['subtotal'] = $detail->total;
-
-            if ($detail->discount_method == '2') {
-                $data['DiscountNet'] = $detail->discount;
-            } else {
-                $data['DiscountNet'] = $detail->price * $detail->discount / 100;
-            }
-
-            $tax_price = $detail->TaxNet * (($detail->price - $data['DiscountNet']) / 100);
-            $data['Unit_price'] = $detail->price;
-            
-            $data['tax_percent'] = $detail->TaxNet;
-            $data['tax_method'] = $detail->tax_method;
-            $data['discount'] = $detail->discount;
-            $data['discount_Method'] = $detail->discount_method;
-
-            if ($detail->tax_method == '1') {
-                $data['Net_price'] = $detail->price - $data['DiscountNet'];
-                $data['taxe'] = $tax_price;
-                $data['Total_price'] = $data['Net_price'] +  $data['taxe'];
-            } else {
-                $data['Net_price'] = ($detail->price - $data['DiscountNet'] - $tax_price);
-                $data['taxe'] = $detail->price - $data['Net_price'] - $data['DiscountNet'];
-                $data['Total_price'] = $data['Net_price'] +  $data['taxe'];
-            }
-
-            $details[] = $data;
+            return $gen_code;
         }
         
-        $categories = Category::where('deleted_at', '=', null)->get(['id', 'name']);
-        $brands = Brand::where('deleted_at', '=', null)->get();
-        $stripe_key = config('app.STRIPE_KEY');
-
-        return response()->json([
-            'stripe_key'     => $stripe_key,
-            'brands'         => $brands,
-            'warehouse_id'   => $sale['warehouse_id'],
-            'client_id'      => $sale['client_id'],
-            'client_name'    => $client_name,
-            'clients'        => $clients,
-            'warehouses'     => $warehouses,
-            'categories'     => $categories,
-            'accounts'       => $accounts,
-            'sale'           => $sale,
-            'GrandTotal'           => $GrandTotal,
-            'details'        => $details,
-        ]);
     }
- 
 
     //------------ Get Products--------------\\
 
     public function GetProductsByParametre(request $request)
     {
-        $this->authorizeForUser($request->user('api'), 'Sales_pos', Sale::class);
-
-        // How many items do you want to display.
-        $perPage = PosSetting::where('deleted_at', '=', null)->first()->products_per_page;
-
-        $pageStart = \Request::get('page', 1);
-        // Start displaying items from this number;
-        $offSet = ($pageStart * $perPage) - $perPage;
-        $data = array();
+         // How many items do you want to display.
+         $perPage = 8;
+         $pageStart = \Request::get('page', 1);
+         // Start displaying items from this number;
+         $offSet = ($pageStart * $perPage) - $perPage;
+         $data = array();
 
         $product_warehouse_data = product_warehouse::where('warehouse_id', $request->warehouse_id)
             ->with('product', 'product.unitSale')
             ->where('deleted_at', '=', null)
             ->where(function ($query) use ($request) {
-                return $query->whereHas('product', function ($q) use ($request) {
-                    $q->where('not_selling', '=', 0);
-                })
+                if ($request->stock == '1' && $request->product_service == '1') {
+                    return $query->where('qte', '>', 0)->orWhere('manage_stock', false);
 
-                ->where(function ($query) use ($request) {
-                    return $query->whereHas('product', function ($q) use ($request) {
-                        if (isset($request->product_combo) && $request->product_combo == '1') {
-                            $q->whereIn('type', ['is_combo', 'is_single', 'is_variant', 'is_service']);
-                        } elseif (!isset($request->product_combo) || $request->product_combo == '0') {
-                            $q->whereNotIn('type', ['is_combo']);
-                        }
-                    });
-                })
-                ->where(function ($query) use ($request) {
-                    if ($request->stock == '1' && $request->product_service == '1') {
-                        return $query->where('qte', '>', 0)->orWhere('manage_stock', false);
-    
-                    }elseif($request->stock == '1' && $request->product_service == '0') {
-                        return $query->where('qte', '>', 0)->orWhere('manage_stock', true);
-    
-                    }else{
-                        return $query->where('manage_stock', true);
-                    }
-                });
+                }elseif($request->stock == '1' && $request->product_service == '0') {
+                    return $query->where('qte', '>', 0)->orWhere('manage_stock', true);
+
+                }else{
+                    return $query->where('manage_stock', true);
+                }
             })
 
         // Filter
-            ->where(function ($query) use ($request) {
-                return $query->when($request->filled('category_id'), function ($query) use ($request) {
-                    return $query->whereHas('product', function ($q) use ($request) {
-                        $q->where('category_id', '=', $request->category_id);
-                    });
-                });
-            })
-            ->where(function ($query) use ($request) {
-                return $query->when($request->filled('brand_id'), function ($query) use ($request) {
-                    return $query->whereHas('product', function ($q) use ($request) {
-                        $q->where('brand_id', '=', $request->brand_id);
-                    });
+        ->where(function ($query) use ($request) {
+            return $query->when($request->filled('category_id'), function ($query) use ($request) {
+                return $query->whereHas('product', function ($q) use ($request) {
+                    $q->where('category_id', '=', $request->category_id);
                 });
             });
+        })
+        ->where(function ($query) use ($request) {
+            return $query->when($request->filled('brand_id'), function ($query) use ($request) {
+                return $query->whereHas('product', function ($q) use ($request) {
+                    $q->where('brand_id', '=', $request->brand_id);
+                });
+            });
+        });
 
         $totalRows = $product_warehouse_data->count();
 
         $product_warehouse_data = $product_warehouse_data
             ->offset($offSet)
-            ->limit($perPage)
+            ->limit(8)
             ->get();
 
         foreach ($product_warehouse_data as $product_warehouse) {
@@ -939,15 +320,16 @@ class PosController extends BaseController
                     ->first();
 
                 $item['product_variant_id'] = $product_warehouse->product_variant_id;
-                $item['Variant'] = '['.$productsVariants->name . ']' . $product_warehouse['product']->name;
-                $item['name'] = '['.$productsVariants->name . ']' . $product_warehouse['product']->name;
+                $item['Variant'] = $productsVariants->name . '-' . $product_warehouse['product']->name;
 
                 $item['code'] = $productsVariants->code;
-                $item['barcode'] = $productsVariants->code;
+                $item['name'] = '['.$productsVariants->name . '] ' . $product_warehouse['product']->name;
 
-                $product_price = $product_warehouse['productVariant']->price;
+                $item['barcode'] = '['.$productsVariants->name . '] ' . $product_warehouse['product']->name;
 
-            } else {
+                $product_price = $productsVariants->price;
+
+            } else if ($product_warehouse->product_variant_id === null) {
                 $item['product_variant_id'] = null;
                 $item['Variant'] = null;
                 $item['code'] = $product_warehouse['product']->code;
@@ -955,47 +337,57 @@ class PosController extends BaseController
                 $item['barcode'] = $product_warehouse['product']->code;
 
                 $product_price =  $product_warehouse['product']->price;
-
             }
-            $item['id'] = $product_warehouse->product_id;
-            $firstimage = explode(',', $product_warehouse['product']->image);
-            $item['image'] = $firstimage[0];
 
-            if($product_warehouse['product']['unitSale']){
+            $item['product_type'] = $product_warehouse['product']->type;
+            $item['id']           = $product_warehouse->product_id;
+            $item['qty_min']      = $product_warehouse['product']->type != 'is_service'?$product_warehouse['product']->qty_min:'---';
+            $item['image']        = $product_warehouse['product']->image;
 
-                if ($product_warehouse['product']['unitSale']->operator == '/') {
-                    $item['qte_sale'] = $product_warehouse->qte * $product_warehouse['product']['unitSale']->operator_value;
-                    $price = $product_price / $product_warehouse['product']['unitSale']->operator_value;
+            //check if product has promotion
+            $todaydate = date('Y-m-d');
 
-                } else {
-                    $item['qte_sale'] = $product_warehouse->qte / $product_warehouse['product']['unitSale']->operator_value;
-                    $price = $product_price * $product_warehouse['product']['unitSale']->operator_value;
-
-                }
-
+            if($product_warehouse['product']->is_promo 
+                && $todaydate >= $product_warehouse['product']->promo_start_date
+                && $todaydate <= $product_warehouse['product']->promo_end_date){
+                    $price_init = $product_warehouse['product']->promo_price;
+                    $item['is_promotion'] = 1;
+                    $item['promo_percent'] =  round(100 * ($product_price - $price_init) / $product_price);
             }else{
-                $item['qte_sale'] = $product_warehouse['product']->type!='is_service'?$product_warehouse->qte:'---';
-                $price = $product_price;
+                $price_init = $product_price;
+                $item['is_promotion'] = 0;
+            }
+
+            if ($product_warehouse['product']['unitSale'] && $product_warehouse['product']['unitSale']->operator == '/') {
+                $item['qte_sale'] = $product_warehouse->qte * $product_warehouse['product']['unitSale']->operator_value;
+                $price = $price_init / $product_warehouse['product']['unitSale']->operator_value;
+
+            }elseif ($product_warehouse['product']['unitSale'] && $product_warehouse['product']['unitSale']->operator == '*') {
+                $item['qte_sale'] = $product_warehouse->qte / $product_warehouse['product']['unitSale']->operator_value;
+                $price = $price_init * $product_warehouse['product']['unitSale']->operator_value;
+           
+            }else{
+                $item['qte_sale'] = $product_warehouse->qte;
+                $price = $price_init;
             }
 
             $item['unitSale'] = $product_warehouse['product']['unitSale']?$product_warehouse['product']['unitSale']->ShortName:'';
-            $item['qte'] = $product_warehouse['product']->type!='is_service'?$product_warehouse->qte:'---';
-            $item['product_type'] = $product_warehouse['product']->type;
-            
+            $item['qte'] = $product_warehouse->qte;
+
             if ($product_warehouse['product']->TaxNet !== 0.0) {
 
                 //Exclusive
                 if ($product_warehouse['product']->tax_method == '1') {
                     $tax_price = $price * $product_warehouse['product']->TaxNet / 100;
 
-                    $item['Net_price'] = $price + $tax_price;
+                    $item['Net_price'] = $this->render_price_with_symbol_placement(number_format($price + $tax_price, 2, '.', ','));
 
                     // Inxclusive
                 } else {
-                    $item['Net_price'] = $price;
+                    $item['Net_price'] = $this->render_price_with_symbol_placement(number_format($price, 2, '.', ','));
                 }
             } else {
-                $item['Net_price'] = $price;
+                $item['Net_price'] = $this->render_price_with_symbol_placement(number_format($price, 2, '.', ','));
             }
 
             $data[] = $item;
@@ -1007,97 +399,209 @@ class PosController extends BaseController
         ]);
     }
 
-    //--------------------- Get Element POS ------------------------\\
 
-    public function GetELementPos(Request $request)
+    //------------ autocomplete_product_pos -----------------\\
+
+    public function autocomplete_product_pos(request $request, $id)
     {
-        $this->authorizeForUser($request->user('api'), 'Sales_pos', Sale::class);
-        $clients = Client::where('deleted_at', '=', null)->get(['id', 'name']);
-        $settings = Setting::where('deleted_at', '=', null)->with('Client')->first();
-        $accounts = Account::where('deleted_at', '=', null)->orderBy('id', 'desc')->get(['id','account_name']);
+        $data = [];
+        $product_warehouse_data = product_warehouse::with('warehouse', 'product', 'productVariant')
+            ->where('warehouse_id', $id)
+            ->where('deleted_at', '=', null)
+            ->where(function ($query) use ($request) {
+                if ($request->stock == '1' && $request->product_service == '1') {
+                    return $query->where('qte', '>', 0)->orWhere('manage_stock', false);
 
-          //get warehouses assigned to user
-          $user_auth = auth()->user();
-          if($user_auth->is_all_warehouses){
-             $warehouses = Warehouse::where('deleted_at', '=', null)->get(['id', 'name']);
+                }elseif($request->stock == '1' && $request->product_service == '0') {
+                    return $query->where('qte', '>', 0)->orWhere('manage_stock', true);
 
-             if ($settings->warehouse_id) {
-                if (Warehouse::where('id', $settings->warehouse_id)->where('deleted_at', '=', null)->first()) {
-                    $defaultWarehouse = $settings->warehouse_id;
-                } else {
-                    $defaultWarehouse = '';
+                }else{
+                    return $query->where('manage_stock', true);
                 }
+            })
+
+        // Filter
+        ->where(function ($query) use ($request) {
+            return $query->when($request->filled('category_id'), function ($query) use ($request) {
+                return $query->whereHas('product', function ($q) use ($request) {
+                    $q->where('category_id', '=', $request->category_id);
+                });
+            });
+        })
+        ->where(function ($query) use ($request) {
+            return $query->when($request->filled('brand_id'), function ($query) use ($request) {
+                return $query->whereHas('product', function ($q) use ($request) {
+                    $q->where('brand_id', '=', $request->brand_id);
+                });
+            });
+        })->get();
+
+        foreach ($product_warehouse_data as $product_warehouse) {
+
+            if ($product_warehouse->product_variant_id) {
+                $item['product_variant_id'] = $product_warehouse->product_variant_id;
+
+                $item['code'] = $product_warehouse['productVariant']->code;
+                $item['name'] = '['.$product_warehouse['productVariant']->name . '] ' . $product_warehouse['product']->name;
+
+                $item['Variant'] = '['.$product_warehouse['productVariant']->name . '] ' . $product_warehouse['product']->name;
+                $item['barcode'] = '['.$product_warehouse['productVariant']->name . '] ' . $product_warehouse['product']->name;
+
             } else {
-                $defaultWarehouse = '';
+                $item['product_variant_id'] = null;
+                $item['Variant'] = null;
+                $item['code'] = $product_warehouse['product']->code;
+                $item['name'] = $product_warehouse['product']->name;
+                $item['barcode'] = $product_warehouse['product']->code;
             }
 
-          }else{
-             $warehouses_id = UserWarehouse::where('user_id', $user_auth->id)->pluck('warehouse_id')->toArray();
-             $warehouses = Warehouse::where('deleted_at', '=', null)->whereIn('id', $warehouses_id)->get(['id', 'name']);
+            $item['id'] = $product_warehouse->product_id;
+            
+            $item['qty_min'] = $product_warehouse['product']->type != 'is_service'?$product_warehouse['product']->qty_min:'---';
+            $item['Type_barcode'] = $product_warehouse['product']->Type_barcode;
+            $item['product_type'] = $product_warehouse['product']->type;
 
-             if ($settings->warehouse_id) {
-                if (Warehouse::where('id', $settings->warehouse_id)->whereIn('id', $warehouses_id)->where('deleted_at', '=', null)->first()) {
-                    $defaultWarehouse = $settings->warehouse_id;
-                } else {
-                    $defaultWarehouse = '';
-                }
-            } else {
-                $defaultWarehouse = '';
+            if ($product_warehouse['product']['unitSale'] && $product_warehouse['product']['unitSale']->operator == '/') {
+                $item['qte_sale'] = $product_warehouse->qte * $product_warehouse['product']['unitSale']->operator_value;
+           
+            } elseif ($product_warehouse['product']['unitSale'] && $product_warehouse['product']['unitSale']->operator == '*') {
+                $item['qte_sale'] = $product_warehouse->qte / $product_warehouse['product']['unitSale']->operator_value;
+            
+            }else{
+                $item['qte_sale'] = $product_warehouse->qte;
             }
-          }
 
+            $item['qte'] = $product_warehouse->qte;
+            $item['unitSale'] = $product_warehouse['product']['unitSale']?$product_warehouse['product']['unitSale']->ShortName:'';
 
-      
-        
-
-        if ($settings->client_id) {
-            if (Client::where('id', $settings->client_id)->where('deleted_at', '=', null)->first()) {
-                $defaultClient = $settings->client_id;
-                $default_client_name = $settings['Client']->name;
-            } else {
-                $defaultClient = '';
-                $default_client_name = '';
-            }
-        } else {
-            $defaultClient = '';
-            $default_client_name = '';
+            $data[] = $item;
         }
-        $categories = Category::where('deleted_at', '=', null)->get(['id', 'name']);
-        $brands = Brand::where('deleted_at', '=', null)->get();
-        $stripe_key = config('app.STRIPE_KEY');
-        $products_per_page = PosSetting::where('deleted_at', '=', null)->first()->products_per_page;
 
-        return response()->json([
-            'stripe_key' => $stripe_key,
-            'brands' => $brands,
-            'defaultWarehouse' => $defaultWarehouse,
-            'defaultClient' => $defaultClient,
-            'default_client_name' => $default_client_name,
-            'clients' => $clients,
-            'warehouses' => $warehouses,
-            'categories' => $categories,
-            'accounts'           => $accounts,
-            'products_per_page'  => $products_per_page,
-        ]);
+        return response()->json($data);
     }
 
+     //------------- Reference Number Order SALE -----------\\
+ 
+     public function getNumberOrder()
+     {
+ 
+         $last = DB::table('sales')->latest('id')->first();
+ 
+         if ($last) {
+             $item = $last->Ref;
+             $nwMsg = explode("_", $item);
+             $inMsg = $nwMsg[1] + 1;
+             $code = $nwMsg[0] . '_' . $inMsg;
+         } else {
+             $code = 'V_1';
+         }
+         return $code;
+     }
 
-      //------------- Reference Number Draft -----------\\
+     //-------------- Print Invoice ---------------\\
 
-      public function getNumberOrderDraft()
-      {
-  
-          $last = DB::table('draft_sales')->latest('id')->first();
-  
-          if ($last) {
-              $item = $last->Ref;
-              $nwMsg = explode("_", $item);
-              $inMsg = $nwMsg[1] + 1;
-              $code = $nwMsg[0] . '_' . $inMsg;
-          } else {
-              $code = 'DR_1111';
-          }
-          return $code;
-      }
+     public function Print_Invoice_POS(Request $request, $id)
+     {
+        $user_auth = auth()->user();
+
+        if ($user_auth->can('pos')){
+
+            $details = array();
+    
+            $sale = Sale::with('details.product.unitSale')
+                ->where('deleted_at', '=', null)
+                ->findOrFail($id);
+    
+            $item['id']                     = $sale->id;
+            $item['Ref']                    = $sale->Ref;
+            $item['date']                   = Carbon::parse($sale->date)->format('d-m-Y H:i');
+
+            if($sale->discount_type == 'fixed'){
+                $item['discount']           = $this->render_price_with_symbol_placement(number_format($sale->discount, 2, '.', ','));
+            }else{
+                $item['discount']           = $this->render_price_with_symbol_placement(number_format($sale->discount_percent_total, 2, '.', ',')) .'('.$sale->discount .' '.'%)';
+            }
+
+            $item['shipping']               = $this->render_price_with_symbol_placement(number_format($sale->shipping, 2, '.', ','));
+            $item['taxe']                   = $this->render_price_with_symbol_placement(number_format($sale->TaxNet, 2, '.', ','));
+            $item['tax_rate']               = $sale->tax_rate;
+            $item['client_name']            = $sale['client']->username;
+            $item['warehouse_name']         = $sale['warehouse']->name;
+            $item['GrandTotal']             = $this->render_price_with_symbol_placement(number_format($sale->GrandTotal, 2, '.', ','));
+            $item['paid_amount']            = $this->render_price_with_symbol_placement(number_format($sale->paid_amount, 2, '.', ','));
+            $item['due']                    = $this->render_price_with_symbol_placement(number_format($sale->GrandTotal - $sale->paid_amount, 2, '.', ','));
+            foreach ($sale['details'] as $detail) {
+    
+                $unit = Unit::where('id', $detail->sale_unit_id)->first();
+                if ($detail->product_variant_id) {
+    
+                    $productsVariants = ProductVariant::where('product_id', $detail->product_id)
+                        ->where('id', $detail->product_variant_id)->first();
+    
+                        $data['code'] = $productsVariants->code;
+                        $data['name'] = '['.$productsVariants->name . '] ' . $detail['product']['name'];
+                        
+                    } else {
+                        $data['code'] = $detail['product']['code'];
+                        $data['name'] = $detail['product']['name'];
+                    }
+                    
+                $data['price'] = $this->render_price_with_symbol_placement(number_format($detail->price, 2, '.', ','));
+                $data['total'] = $this->render_price_with_symbol_placement(number_format($detail->total, 2, '.', ','));
+                $data['quantity'] = $detail->quantity;
+                $data['unit_sale'] = $unit?$unit->ShortName:'';
+    
+                $data['is_imei'] = $detail['product']['is_imei'];
+                $data['imei_number'] = $detail->imei_number;
+    
+                $details[] = $data;
+            }
+    
+            $payments = PaymentSale::with('sale','payment_method')
+                ->where('sale_id', $id)
+                ->orderBy('id', 'DESC')
+                ->get();
+
+            $payments_details = [];
+            foreach ($payments as $payment) {
+
+                $payment_data['Reglement'] = $payment->payment_method->title;
+                $payment_data['montant']   = $this->render_price_with_symbol_placement(number_format($payment->montant, 2, '.', ','));
+
+                $payments_details[] = $payment_data;
+            }
+    
+            $settings = Setting::where('deleted_at', '=', null)->first();
+            $pos_settings = PosSetting::where('deleted_at', '=', null)->first();
+    
+            return view('sales.invoice_pos',
+                    [
+                        'payments' => $payments_details,
+                        'setting' => $settings,
+                        'pos_settings' => $pos_settings,
+                        'sale' => $item,
+                        'details' => $details,
+                    ]
+                );
+
+        }
+        return abort('403', __('You are not authorized'));
+ 
+     }
+ 
+
+
+    // render_price_with_symbol_placement
+
+    public function render_price_with_symbol_placement($amount) {
+
+        if ($this->symbol_placement == 'before') {
+            return $this->currency . ' ' . $amount;
+        } else {
+            return $amount . ' ' . $this->currency;
+        }
+    }
+
+   
 
 }

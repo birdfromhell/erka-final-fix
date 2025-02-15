@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth;
 class helpers
 {
 
+    
     //  Helper Multiple Filter
     public function filter($model, $columns, $param, $request)
     {
@@ -22,11 +23,16 @@ class helpers
 
         foreach ($fields as $field) {
             $model->where(function ($query) use ($request, $field, $model) {
-                return $model->when($request->filled($field['value']),
-                    function ($query) use ($request, $model, $field) {
-                        $field['param'] = 'like' ?
-                        $model->where($field['value'], 'like', "{$request[$field['value']]}")
-                        : $model->where($field['value'], $request[$field['value']]);
+                return $model->when($request->filled($field['value']), function ($query) use ($request, $model, $field) {
+                        
+                        if($field['param'] == 'like'){
+                            $query->where($field['value'], 'LIKE', $request[$field['value']]);
+                        }elseif($field['param'] == '='){
+                            $query->where($field['value'] ,'=', $request[$field['value']]);
+                        }else{
+                            $query->where($field['value'] , $request[$field['value']]);
+                        }
+                       
                     });
             });
         }
@@ -65,6 +71,40 @@ class helpers
         }
         return $symbol;
     }
+
+    //get_symbol_placement
+    public function get_symbol_placement()
+    {
+        $settings = Setting::where('deleted_at', '=', null)->first();
+
+        if ($settings) {
+            if ($settings->symbol_placement == 'before') {
+                $symbol_placement = 'before';
+            } else {
+                $symbol_placement = 'after';
+            }
+        } else {
+            $symbol_placement = 'before';
+        }
+        return $symbol_placement;
+    }
+
+     //get_number_decimal
+     public function get_number_decimal()
+     {
+         $settings = Setting::where('deleted_at', '=', null)->first();
+ 
+         if ($settings) {
+             if ($settings->number_decimal == '2') {
+                 $number_decimal = 2;
+             } else {
+                 $number_decimal = 3;
+             }
+         } else {
+             $number_decimal = 2;
+         }
+         return $number_decimal;
+     }
 
     // Get Currency COde
     public function Get_Currency_Code()

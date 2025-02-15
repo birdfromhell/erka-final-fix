@@ -2,43 +2,40 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Expense extends Model
 {
+    use HasFactory;
+
     protected $dates = ['deleted_at'];
 
     protected $fillable = [
-        'date', 'user_id', 'expense_category_id', 'warehouse_id', 'details','account_id',
-        'amount', 'Ref', 'created_at', 'updated_at', 'deleted_at',
+        'account_id','expense_category_id','amount','payment_method_id',
+        'date','expense_ref','description','attachment'
     ];
 
     protected $casts = [
-        'user_id' => 'integer',
-        'expense_category_id' => 'integer',
-        'account_id' => 'integer',
-        'warehouse_id' => 'integer',
+        'account_id'  => 'integer',
+        'expense_category_id'  => 'integer',
+        'payment_method_id'  => 'integer',
         'amount' => 'double',
     ];
 
-    public function account()
+    public function expense_account()
     {
-        return $this->belongsTo('App\Models\Account');
+        return $this->hasOne('App\Models\Account', 'id', 'account_id');
     }
 
-    public function warehouse()
+    public function  expense_payment_method()
     {
-        return $this->belongsTo('App\Models\Warehouse');
+        return $this->hasOne('App\Models\PaymentMethod', 'id', 'payment_method_id');
     }
 
     public function expense_category()
     {
-        return $this->belongsTo('App\Models\ExpenseCategory');
-    }
-
-    public function user()
-    {
-        return $this->belongsTo('App\Models\User');
+        return $this->hasOne('App\Models\ExpenseCategory', 'id', 'expense_category_id');
     }
 
 }

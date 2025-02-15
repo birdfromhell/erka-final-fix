@@ -11,15 +11,15 @@ class Purchase extends Model
     protected $fillable = [
         'date', 'Ref', 'provider_id', 'warehouse_id', 'GrandTotal',
         'discount', 'shipping', 'statut', 'notes', 'TaxNet', 'tax_rate', 'paid_amount',
-        'payment_statut', 'created_at', 'updated_at', 'deleted_at',
+        'payment_statut', 'created_at', 'updated_at', 'deleted_at','discount_type','discount_percent_total'
     ];
 
     protected $casts = [
-        'user_id' => 'integer',
         'provider_id' => 'integer',
         'warehouse_id' => 'integer',
         'GrandTotal' => 'double',
         'discount' => 'double',
+        'discount_percent_total' => 'double',
         'shipping' => 'double',
         'TaxNet' => 'double',
         'tax_rate' => 'double',

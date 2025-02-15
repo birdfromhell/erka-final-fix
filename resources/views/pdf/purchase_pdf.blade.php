@@ -2,24 +2,27 @@
 <html lang="en">
    <head>
       <meta charset="utf-8">
-      <title>Purchase _{{$purchase['Ref']}}</title>
-      <link rel="stylesheet" href="{{asset('/css/pdf_style.css')}}" media="all" />
+      <title>{{$purchase['Ref']}}</title>
+      <link rel="stylesheet" href="{{asset('assets/styles/vendor/pdf_style.css')}}">
    </head>
 
    <body>
       <header class="clearfix">
          <div id="logo">
-         <img src="{{asset('/images/'.$setting['logo'])}}">
+               <img src="{{asset('images/'.$setting['logo'])}}">
          </div>
          <div id="company">
-            <div><strong> Date: </strong>{{$purchase['date']}}</div>
-            <div><strong> Number: </strong> {{$purchase['Ref']}}</div>
-            <div><strong> Status: </strong> {{$purchase['statut']}}</div>
-            <div><strong> Payment Status: </strong> {{$purchase['payment_status']}}</div>
+            <div><strong> {{ __('translate.Date') }} </strong>{{$purchase['date']}}</div>
+            <div><strong> {{ __('translate.Ref') }} </strong> {{$purchase['Ref']}}</div>
+            <div><strong> {{ __('translate.Payment_Status') }} </strong> 
+               @if($purchase['payment_status'] == 'paid') {{ __('translate.Paid') }}
+               @elseif($purchase['payment_status'] == 'partial') {{ __('translate.Partial') }}
+               @else {{ __('translate.Unpaid') }}
+               @endif
+            </div>
          </div>
          <div id="Title-heading">
-             Purchase  : {{$purchase['Ref']}}
-         </div>
+            <strong>{{ __('translate.Purchase') }}  </strong> {{$purchase['Ref']}}
          </div>
       </header>
       <main>
@@ -28,17 +31,16 @@
                <table class="table-sm">
                   <thead>
                      <tr>
-                        <th class="desc">Supplier Info</th>
+                        <th class="desc">{{ __('translate.Supplier_Info') }}</th>
                      </tr>
                   </thead>
                   <tbody>
                      <tr>
                         <td>
-                           <div><strong>Full Name :</strong> {{$purchase['supplier_name']}}</div>
-                           <div><strong>Phone :</strong> {{$purchase['supplier_phone']}}</div>
-                           <div><strong>Address :</strong>   {{$purchase['supplier_adr']}}</div>
-                           <div><strong>Email :</strong>  {{$purchase['supplier_email']}}</div>
-                           @if($purchase['supplier_tax'])<div><strong>Tax Number :</strong>  {{$purchase['supplier_tax']}}</div>@endif
+                           <div><strong>{{ __('translate.Name') }} </strong> {{$purchase['supplier_name']}}</div>
+                           <div><strong>{{ __('translate.Phone') }} </strong> {{$purchase['supplier_phone']}}</div>
+                           <div><strong>{{ __('translate.Address') }} </strong>   {{$purchase['supplier_adr']}}</div>
+                           <div><strong>{{ __('translate.Email') }} </strong>  {{$purchase['supplier_email']}}</div>
                         </td>
                      </tr>
                   </tbody>
@@ -48,16 +50,16 @@
                <table class="table-sm">
                   <thead>
                      <tr>
-                        <th class="desc">Company Info</th>
+                        <th class="desc">{{ __('translate.Company_Info') }}</th>
                      </tr>
                   </thead>
                   <tbody>
                      <tr>
                         <td>
                            <div id="comp">{{$setting['CompanyName']}}</div>
-                           <div><strong>Address :</strong>  {{$setting['CompanyAdress']}}</div>
-                           <div><strong>Phone :</strong>  {{$setting['CompanyPhone']}}</div>
-                           <div><strong>Email :</strong>  {{$setting['email']}}</div>
+                           <div><strong>{{ __('translate.Address') }} </strong>  {{$setting['CompanyAdress']}}</div>
+                           <div><strong>{{ __('translate.Phone') }} </strong>  {{$setting['CompanyPhone']}}</div>
+                           <div><strong>{{ __('translate.Email') }} </strong>  {{$setting['email']}}</div>
                         </td>
                      </tr>
                   </tbody>
@@ -68,12 +70,12 @@
             <table class="table-sm">
                <thead>
                   <tr>
-                     <th>PRODUCT</th>
-                     <th>UNIT COST</th>
-                     <th>QUANTITY</th>
-                     <th>DISCOUNT</th>
-                     <th>TAX</th>
-                     <th>TOTAL</th>
+                     <th>{{ __('translate.Product_Name') }}</th>
+                     <th>{{ __('translate.Unit_cost') }}</th>
+                     <th>{{ __('translate.Quantity') }}</th>
+                     <th>{{ __('translate.Discount') }}</th>
+                     <th>{{ __('translate.Tax') }}</th>
+                     <th>{{ __('translate.SubTotal') }}</th>
                   </tr>
                </thead>
                <tbody>
@@ -97,36 +99,38 @@
          </div>
          <div id="total">
             <table>
-               <tr>
-                  <td>Order Tax</td>
-                  <td>{{$purchase['TaxNet']}} </td>
+                  <tr class="service">
+                        <td class="tableitem">{{ __('translate.Order_Tax') }}</td>
+                        <td class="tableitem">{{$purchase['TaxNet']}} ({{$purchase['tax_rate']}} %)</td>
                </tr>
-               <tr>
-                  <td>Discount</td>
-                  <td>{{$purchase['discount']}} </td>
+               <tr class="service">
+                  <td class="tableitem">{{ __('translate.Discount') }}</td>
+                  <td class="tableitem">
+                     <span>{{$purchase['discount']}}</span>
+                  </td>
                </tr>
-               <tr>
-                  <td>Shipping</td>
-                  <td>{{$purchase['shipping']}} </td>
+               <tr class="service">
+                     <td class="tableitem">{{ __('translate.Shipping') }}</td>
+                     <td class="tableitem">{{$purchase['shipping']}} </td>
                </tr>
-               <tr>
-                  <td>Total</td>
-                  <td>{{$symbol}} {{$purchase['GrandTotal']}} </td>
-               </tr>
-
-               <tr>
-                  <td>Paid Amount</td>
-                  <td>{{$symbol}} {{$purchase['paid_amount']}} </td>
+               <tr class="service">
+                     <td class="tableitem">{{ __('translate.Total') }}</td>
+                     <td class="tableitem">{{$purchase['GrandTotal']}}</td>
                </tr>
 
-               <tr>
-                  <td>Due</td>
-                  <td>{{$symbol}} {{$purchase['due']}} </td>
+               <tr class="service">
+                     <td class="tableitem">{{ __('translate.Paid') }}</td>
+                     <td class="tableitem">{{$purchase['paid_amount']}}</td>
+               </tr>
+
+               <tr class="service">
+                     <td class="tableitem">{{ __('translate.Due') }}</td>
+                     <td class="tableitem">{{$purchase['due']}}</td>
                </tr>
             </table>
          </div>
          <div id="signature">
-            @if($setting['is_invoice_footer'] && $setting['invoice_footer'] !==null)
+            @if($setting['invoice_footer'] !== null)
                <p>{{$setting['invoice_footer']}}</p>
             @endif
          </div>

@@ -27,7 +27,7 @@ class TransferDetail extends Model
 
     public function transfer()
     {
-        return $this->belongsTo('App\Models\Transfer');
+        return $this->hasMany('App\Models\Transfer');
     }
 
     public function product()

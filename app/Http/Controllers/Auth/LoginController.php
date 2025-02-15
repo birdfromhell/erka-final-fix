@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
-use \Nwidart\Modules\Facades\Module;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class LoginController extends Controller
 {
@@ -34,41 +36,27 @@ class LoginController extends Controller
      *
      * @return void
      */
-
-     /**
-     * Get the needed authorization credentials from the request.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return array
-     */
-    protected function credentials(\Illuminate\Http\Request $request)
-    {
-        return ['email' => $request->{$this->username()}, 'password' => $request->password, 'statut' => 1];
-    }
-
     public function __construct()
     {
         $this->middleware('guest')->except('logout');
     }
 
-    public function showLoginForm(){
-        $allModules = Module::all();
-        $allEnabledModules = Module::allEnabled();
+    
 
-        $ModulesInstalled = [];
-        $ModulesEnabled = [];
-
-        foreach($allModules as $key => $modules_name){
-            $ModulesInstalled[] = $key;
-        }
-
-        foreach($allEnabledModules as $key => $modules_name){
-            $ModulesEnabled[] = $key;
-        }
-
-        return view('auth.login',[
-            'ModulesInstalled' => $ModulesInstalled, 
-            'ModulesEnabled' => $ModulesEnabled, 
+    public function authenticate(Request $request)
+    {
+        $credentials = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required'],
+            'status'   => 1
         ]);
+
+        if (Auth::attempt($credentials)) {
+
+            $request->session()->regenerate();
+            
+            $user_Auth = Auth::User();
+            return redirect('/dashboard/admin');
+        }
     }
 }

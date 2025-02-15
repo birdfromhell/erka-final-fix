@@ -1,7 +1,10 @@
 <?php
+
 namespace App\Http\Middleware;
+
 use Closure;
-use Illuminate\Support\Facades\Auth;
+use Auth;
+
 class Is_Active
 {
     /**
@@ -13,11 +16,11 @@ class Is_Active
      */
     public function handle($request, Closure $next)
     {
-        $response = $next($request);
+		$response = $next($request);
         //If the status is not approved redirect to login 
-        if(Auth::check() && !Auth::user()->statut){
+        if(Auth::check() && !Auth::user()->status){
             Auth::logout();
-            return redirect('/login')->with('erro_login', 'Your error text');
+            return redirect('/login')->with('erro_login', 'Your Account Inactivated');
         }
         return $response;
     }

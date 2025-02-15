@@ -9,7 +9,6 @@ RewriteEngine On
 RewriteCond %{HTTP:Authorization} .
 RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
-
 RewriteCond %{REQUEST_FILENAME} -d [OR]
 RewriteCond %{REQUEST_FILENAME} -f
 RewriteRule ^ ^$1 [N]
@@ -20,7 +19,7 @@ RewriteRule ^(.*)$ public/$1
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteRule ^ server.php
-
+</IfModule>
 
 #Disable index view
 options -Indexes
@@ -33,16 +32,10 @@ Deny from all
 </Files>
 
 # block files which needs to be hidden, specify .example extension of the file
-<Files ~ "\.(example|config.js|md|gitignore|gitattributes|lock|git)$">
+<Files ~ "\.(json|example|config.js|md|gitignore|gitattributes|lock)$">
     Order allow,deny
     Deny from all
 </Files>
-
-<FilesMatch "\.csv$">
-    Header set Content-Disposition "attachment"
-    Header set Content-Type "text/csv"
-</FilesMatch>
-
 
 # BEGIN W3TC Browser Cache
 <IfModule mod_mime.c>

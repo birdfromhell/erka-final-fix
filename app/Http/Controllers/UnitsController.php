@@ -5,72 +5,76 @@ namespace App\Http\Controllers;
 use App\Models\Unit;
 use App\Models\Product;
 use Carbon\Carbon;
+use DataTables;
 use Illuminate\Http\Request;
-
-class UnitsController extends BaseController
+use Illuminate\Routing\Controller;
+class UnitsController extends Controller
 {
 
     //-------------- show All Units -----------\\
 
     public function index(Request $request)
     {
-        $this->authorizeForUser($request->user('api'), 'view', Unit::class);
-        // How many items do you want to display.
-        $perPage = $request->limit;
-        $pageStart = \Request::get('page', 1);
-        // Start displaying items from this number;
-        $offSet = ($pageStart * $perPage) - $perPage;
-        $order = $request->SortField;
-        $dir = $request->SortType;
-        $data = array();
+        $user_auth = auth()->user();
+		if ($user_auth->can('unit')){
 
-        $Units = Unit::where('deleted_at', '=', null)
+            if ($request->ajax()) {
+                $data = Unit::where('deleted_at', '=', null)->orderBy('id', 'desc')->get();
 
-        // Search With Multiple Param
-            ->where(function ($query) use ($request) {
-                return $query->when($request->filled('search'), function ($query) use ($request) {
-                    return $query->where('name', 'LIKE', "%{$request->search}%")
-                        ->orWhere('ShortName', 'LIKE', "%{$request->search}%");
-                });
-            });
-        $totalRows = $Units->count();
-        if($perPage == "-1"){
-            $perPage = $totalRows;
-        }
-        $Units = $Units->offset($offSet)
-            ->limit($perPage)
-            ->orderBy($order, $dir)
-            ->get();
+                return Datatables::of($data)->addIndexColumn()
 
-        foreach ($Units as $unit) {
-            $unit_data['id'] = $unit->id;
-            $unit_data['name'] = $unit->name;
-            $unit_data['ShortName'] = $unit->ShortName;
-            $unit_data['operator'] = $unit->operator;
-            $unit_data['operator_value'] = $unit->operator_value;
+                ->addColumn('base_unit_name', function($row){
 
-            if ($unit->base_unit !== null) {
-                $unit_base = Unit::where('id', $unit->base_unit)->where('deleted_at', null)->first();
-                $unit_data['base_unit_name'] = $unit_base['name'];
-                $unit_data['base_unit'] = $unit_base['id'];
-            } else {
-                $unit_data['base_unit_name'] = '';
-                $unit_data['base_unit'] = '';
+                    if ($row->base_unit) {
+                        $unit_base = Unit::where('id', $row->base_unit)->where('deleted_at', null)->first();
+                        $base_unit_name = $unit_base['name'];
+                    } else {
+                        $base_unit_name = 'ND';
+                    }
+        
+                    return $base_unit_name;
+                })
+            
+                ->addColumn('action', function($row){
+
+                        $btn = '<a id="' .$row->id. '"  class="edit cursor-pointer ul-link-action text-success"
+                        data-toggle="tooltip" data-placement="top" title="Edit"><i class="i-Edit"></i></a>';
+                        $btn .= '&nbsp;&nbsp;';
+
+                        $btn .= '<a id="' .$row->id. '" class="delete cursor-pointer ul-link-action text-danger"
+                        data-toggle="tooltip" data-placement="top" title="Remove"><i class="i-Close-Window"></i></a>';
+                        $btn .= '&nbsp;&nbsp;';
+
+                        return $btn;
+                    })
+                    ->rawColumns(['action'])
+                    ->make(true);
             }
 
-            $data[] = $unit_data;
+            return view('products.units');
+
         }
+        return abort('403', __('You are not authorized'));
+       
+    }
 
-        $Units_base = Unit::where('base_unit', null)
-            ->where('deleted_at', null)
-            ->orderBy('id', 'DESC')
-            ->get(['id', 'name']);
+    
+    public function create(Request $request)
+    {
+        $user_auth = auth()->user();
+		if ($user_auth->can('unit')){
 
-        return response()->json([
-            'Units' => $data,
-            'Units_base' => $Units_base,
-            'totalRows' => $totalRows,
-        ]);
+            $units_base = Unit::where('base_unit', null)
+                ->where('deleted_at', null)
+                ->orderBy('id', 'DESC')
+                ->get(['id', 'name']);
+                
+            return response()->json([
+                'units_base' => $units_base,
+            ]);
+
+        }
+        return abort('403', __('You are not authorized'));
 
     }
 
@@ -78,63 +82,95 @@ class UnitsController extends BaseController
 
     public function store(Request $request)
     {
-        $this->authorizeForUser($request->user('api'), 'create', Unit::class);
+        $user_auth = auth()->user();
+		if ($user_auth->can('unit')){
 
-        request()->validate([
-            'name' => 'required',
-            'ShortName' => 'required',
-        ]);
+            request()->validate([
+                'name' => 'required',
+                'ShortName' => 'required',
+            ]);
 
-        if ($request->base_unit == '') {
-            $operator = '*';
-            $operator_value = 1;
-        } else {
-            $operator = $request->operator;
-            $operator_value = $request->operator_value;
+            if ($request->base_unit == '') {
+                $operator = '*';
+                $operator_value = 1;
+                $base_unit = NULL;
+            } else {
+                $operator = $request->operator;
+                $operator_value = $request->operator_value;
+                $base_unit = $request['base_unit'];
+            }
+
+            Unit::create([
+                'name' => $request['name'],
+                'ShortName' => $request['ShortName'],
+                'base_unit' => $base_unit,
+                'operator' => $operator,
+                'operator_value' => $operator_value,
+            ]);
+
+            return response()->json(['success' => true]);
+
         }
+        return abort('403', __('You are not authorized'));
 
-        Unit::create([
-            'name' => $request['name'],
-            'ShortName' => $request['ShortName'],
-            'base_unit' => $request['base_unit'],
-            'operator' => $operator,
-            'operator_value' => $operator_value,
-        ]);
+    }
 
-        return response()->json(['success' => true]);
 
+    public function edit(Request $request, $id)
+    {
+        $user_auth = auth()->user();
+		if ($user_auth->can('unit')){
+
+            $unit = Unit::where('deleted_at', '=', null)->findOrFail($id);
+
+            $units_base = Unit::where('id' , '!=', $id)->where('base_unit', null)
+            ->where('deleted_at', null)
+            ->orderBy('id', 'DESC')
+            ->get(['id', 'name']);
+                
+            return response()->json([
+                'unit' => $unit,
+                'units_base' => $units_base,
+            ]);
+
+        }
+        return abort('403', __('You are not authorized'));
     }
 
     //-------------- UPDATE UNIT -----------\\
 
     public function update(Request $request, $id)
     {
-        $this->authorizeForUser($request->user('api'), 'update', Unit::class);
+        $user_auth = auth()->user();
+		if ($user_auth->can('unit')){
 
-        request()->validate([
-            'name' => 'required',
-            'ShortName' => 'required',
-        ]);
+            request()->validate([
+                'name' => 'required',
+                'ShortName' => 'required',
+            ]);
 
-        if ($request->base_unit == '' || $request->base_unit == $id) {
-            $operator = '*';
-            $operator_value = 1;
-            $base_unit = null;
-        } else {
-            $operator = $request->operator;
-            $operator_value = $request->operator_value;
-            $base_unit = $request['base_unit'];
+            if ($request->base_unit == '' || $request->base_unit == $id) {
+                $operator = '*';
+                $operator_value = 1;
+                $base_unit = NULL;
+            } else {
+                $operator = $request->operator;
+                $operator_value = $request->operator_value;
+                $base_unit = $request['base_unit'];
+            }
+
+            Unit::whereId($id)->update([
+                'name' => $request['name'],
+                'ShortName' => $request['ShortName'],
+                'base_unit' => $base_unit,
+                'operator' => $operator,
+                'operator_value' => $operator_value,
+            ]);
+
+            return response()->json(['success' => true]);
+
         }
-
-        Unit::whereId($id)->update([
-            'name' => $request['name'],
-            'ShortName' => $request['ShortName'],
-            'base_unit' => $base_unit,
-            'operator' => $operator,
-            'operator_value' => $operator_value,
-        ]);
-
-        return response()->json(['success' => true]);
+        return abort('403', __('You are not authorized'));
 
     }
 
@@ -142,18 +178,22 @@ class UnitsController extends BaseController
 
     public function destroy(Request $request, $id)
     {
-        $this->authorizeForUser($request->user('api'), 'delete', Unit::class);
+        $user_auth = auth()->user();
+		if ($user_auth->can('unit')){
 
-        $Sub_Unit_exist = Unit::where('base_unit', $id)->where('deleted_at', null)->exists();
-        if (!$Sub_Unit_exist) {
-            Unit::whereId($id)->update([
-                'deleted_at' => Carbon::now(),
-            ]);
+            $Sub_Unit_exist = Unit::where('base_unit', $id)->where('deleted_at', null)->exists();
+            if (!$Sub_Unit_exist) {
+                Unit::whereId($id)->update([
+                    'deleted_at' => Carbon::now(),
+                ]);
 
-            return response()->json(['success' => true]);
-        } else {
-            return response()->json(['success' => false]);
+                return response()->json(['success' => true]);
+            } else {
+                return response()->json(['success' => false]);
+            }
+            
         }
+        return abort('403', __('You are not authorized'));
 
     }
 
@@ -161,7 +201,7 @@ class UnitsController extends BaseController
 
     public function Get_Units_SubBase(request $request)
     {
-        $units = Unit::where('deleted_at', null)->where(function ($query) use ($request) {
+        $units = Unit::where(function ($query) use ($request) {
             return $query->when($request->filled('id'), function ($query) use ($request) {
                 return $query->where('id', $request->id)
                               ->orWhere('base_unit', $request->id);

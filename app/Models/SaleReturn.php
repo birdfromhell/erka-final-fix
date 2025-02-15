@@ -11,7 +11,8 @@ class SaleReturn extends Model
     protected $fillable = [
         'date', 'Ref', 'GrandTotal',
         'user_id', 'discount', 'shipping',
-        'warehouse_id', 'client_id','sale_id', 'notes', 'TaxNet', 'tax_rate', 'statut',
+        'warehouse_id', 'client_id','sale_id', 'notes', 'TaxNet', 'tax_rate', 
+        'statut','discount_type','discount_percent_total',
         'paid_amount', 'payment_statut', 'created_at', 'updated_at', 'deleted_at',
     ];
 
@@ -22,6 +23,7 @@ class SaleReturn extends Model
         'sale_id' => 'integer',
         'warehouse_id' => 'integer',
         'discount' => 'double',
+        'discount_percent_total' => 'double',
         'shipping' => 'double',
         'TaxNet' => 'double',
         'tax_rate' => 'double',

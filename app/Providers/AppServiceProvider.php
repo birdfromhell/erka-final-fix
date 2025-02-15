@@ -3,13 +3,11 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Laravel\Passport\Console\ClientCommand;
-use Laravel\Passport\Console\InstallCommand;
-use Laravel\Passport\Console\KeysCommand;
-use Laravel\Passport\Passport;
 use Illuminate\Support\Facades\Schema;
-
-
+use Illuminate\Support\Facades\App;
+use App\utils\helpers;
+use Illuminate\Support\Facades\View;
+use Config;
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -29,19 +27,28 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        Schema::defaultStringLength(191);
-         /*ADD THIS LINES*/
-        $this->commands([
-            InstallCommand::class,
-            ClientCommand::class,
-            KeysCommand::class,
-        ]);
+        try {
+            $helpers           = new helpers();
+            $currency          = $helpers->Get_Currency();
+            $symbol_placement  = $helpers->get_symbol_placement();
+            
+            View::share([
+                'currency'         => $currency,
+                'symbol_placement' => $symbol_placement,
+            ]);
 
-         // Set the default guard to 'store' for all 'store/*' routes
-        $this->app['router']->matched(function (\Illuminate\Routing\Events\RouteMatched $event) {
-            if ($event->route->action['middleware'] === 'auth.store') {
-                Auth::shouldUse('store');
-            }
-        });
+
+        } catch (\Exception $e) {
+
+            return [];
+    
+        }
+
+        Schema::defaultStringLength(191);
+        if(isset($_COOKIE['language'])) {
+			App::setLocale($_COOKIE['language']);
+		} else {
+			App::setLocale('en');
+		}
     }
 }

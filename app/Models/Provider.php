@@ -9,11 +9,16 @@ class Provider extends Model
     protected $dates = ['deleted_at'];
 
     protected $fillable = [
-        'name', 'code', 'adresse', 'phone', 'country', 'email', 'city','tax_number'
+        'user_id','name', 'code', 'address', 'phone', 'country', 'email', 'city',
     ];
 
     protected $casts = [
-        'code' => 'integer',
+        'user_id' => 'integer',
     ];
 
+
+    public function user()
+    {
+        return $this->belongsTo('App\Models\User');
+    }
 }
