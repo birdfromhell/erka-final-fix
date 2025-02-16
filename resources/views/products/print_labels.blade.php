@@ -5,6 +5,7 @@
 <link rel="stylesheet" href="{{asset('assets/styles/vendor/nprogress.css')}}">
 <link rel="stylesheet" href="{{asset('assets/styles/vendor/autocomplete.css')}}">
 <link rel="stylesheet" href="{{asset('assets/styles/vendor/barcode.css')}}">
+<link rel="stylesheet" href="{{asset('assets/styles/css/themes/lite-purple.min.css')}}">
 @endsection
 
 <div class="breadcrumb">

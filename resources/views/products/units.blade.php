@@ -3,6 +3,7 @@
 @section('page-css')
 <link rel="stylesheet" href="{{asset('assets/styles/vendor/datatables.min.css')}}">
 <link rel="stylesheet" href="{{asset('assets/styles/vendor/nprogress.css')}}">
+<link rel="stylesheet" href="{{asset('assets/styles/css/themes/lite-purple.min.css')}}">
 @endsection
 
 <div class="breadcrumb">
