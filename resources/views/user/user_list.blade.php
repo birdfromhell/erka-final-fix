@@ -6,7 +6,7 @@
 @endsection
 
 <div class="breadcrumb">
-  <h1>{{ __('translate.User_Controller') }}</h1>
+  <h1>Pengguna</h1>
 </div>
 
 <div class="separator-breadcrumb border-top"></div>
@@ -19,20 +19,20 @@
           @can('user_add')
           <div class="text-end mb-3">
             <a class="new_user btn btn-outline-primary btn-md m-1" @click="New_User"><i class="i-Add me-2 font-weight-bold"></i></i>
-              {{ __('translate.Create') }}</a>
+              Tambah</a>
           </div>
           @endcan
           <div class="table-responsive">
             <table id="ul-contact-list" class="display table">
               <thead>
                 <tr>
-                  <th>{{ __('translate.Avatar') }}</th>
-                  <th>{{ __('translate.Username') }}</th>
-                  <th>{{ __('translate.Email') }}</th>
-                  <th>{{ __('translate.Status') }}</th>
-                  <th>{{ __('translate.Role') }}</th>
-                  <th>{{ __('translate.Assign_Role') }}</th>
-                  <th>{{ __('translate.Action') }}</th>
+                  <th>Foto Profile</th>
+                  <th>Username</th>
+                  <th>Email</th>
+                  <th>Status</th>
+                  <th>Roles</th>
+                  <th>Assign Role</th>
+                  <th>Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -55,13 +55,13 @@
                   <td>{{$user->RoleUser['name']}}</td>
                   @can('group_permission')
                   @if($user->role_users_id === 1 || $user->role_users_id === 2)
-                  <td>{{ __('translate.Cannot_change_Default_Permissions') }}</td>
+                  <td>Tidak dapat mengubah izin default</td>
                   @else
                   <td>
                     <div class="dropdown">
                       <button class="btn btn-primary btn-sm m-1 dropdown-toggle" type="button" id="assignRole"
                         data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        {{ __('translate.Assign_Role') }}
+                        Assign Role
                       </button>
                       <div class="dropdown-menu" aria-labelledby="assignRole">
                         @foreach ($roles as $role)
@@ -107,8 +107,8 @@
     <div class="modal-dialog modal-lg" role="document">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 v-if="editmode" class="modal-title" id="user_Modal">{{ __('translate.Edit') }}</h5>
-          <h5 v-else class="modal-title" id="user_Modal">{{ __('translate.Create') }}</h5>
+          <h5 v-if="editmode" class="modal-title" id="user_Modal">Edit</h5>
+          <h5 v-else class="modal-title" id="user_Modal">Tambah</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
@@ -117,49 +117,49 @@
             <div class="row">
 
               <div class="form-group col-md-6">
-                <label for="username">{{ __('translate.FullName') }}<span class="field_required">*</span></label>
+                <label for="username">Full Name<span class="field_required">*</span></label>
                 <input type="text" v-model="user.username" class="form-control" name="username" id="username"
-                  placeholder="{{ __('translate.Enter_FullName') }}">
+                  placeholder="Nama Lengkap">
                 <span class="error" v-if="errors && errors.username">
                   @{{ errors.username[0] }}
                 </span>
               </div>
 
               <div class="form-group col-md-6">
-                <label for="email">{{ __('translate.Email_Address') }}<span class="field_required">*</span></label>
+                <label for="email">Alamat Email<span class="field_required">*</span></label>
                 <input type="text" v-model="user.email" class="form-control" name="email" id="email"
-                  placeholder="{{ __('translate.Enter_email_address') }}">
+                  placeholder="Alamat email">
                 <span class="error" v-if="errors && errors.email">
                   @{{ errors.email[0] }}
                 </span>
               </div>
 
               <div class="form-group col-md-6">
-                <label for="password">{{ __('translate.Password') }} <span class="field_required">*</span></label>
+                <label for="password">Password <span class="field_required">*</span></label>
                 <input type="password" v-model="user.password" class="form-control" id="password"
-                  placeholder="{{ __('translate.min_6_characters') }}">
+                  placeholder="Password Minimmal 6 karakter">
                 <span class="error" v-if="errors && errors.password">
                   @{{ errors.password[0] }}
                 </span>
               </div>
 
               <div class="form-group col-md-6">
-                <label for="password_confirmation">{{ __('translate.Repeat_Password') }}
+                <label for="password_confirmation">Ulangi Password
                   <span class="field_required">*</span></label>
                 <input type="password" v-model="user.password_confirmation" class="form-control"
-                  id="password_confirmation" placeholder="{{ __('translate.Repeat_Password') }}">
+                  id="password_confirmation" placeholder="Ulangi Password">
                 <span class="error" v-if="errors && errors.password_confirmation">
                   @{{ errors.password_confirmation[0] }}
                 </span>
               </div>
 
               <div class="form-group col-md-6" v-if="auth_user_id !== user.id">
-                <label>{{ __('translate.Status') }} <span class="field_required">*</span></label>
-                <v-select @input="Selected_Status" placeholder="{{ __('translate.Choose_status') }}"
+                <label>Status<span class="field_required">*</span></label>
+                <v-select @input="Selected_Status" placeholder="Pilih Status"
                   v-model="user.status" :reduce="(option) => option.value" :options="
                                                  [
-                                                     {label: 'Active', value: 1},
-                                                     {label: 'Inactive', value: 0},
+                                                     {label: 'Aktif', value: 1},
+                                                     {label: 'Tidak Aktif', value: 0},
                                                  ]">
                 </v-select>
 
@@ -169,8 +169,8 @@
               </div>
 
               <div class="form-group col-md-6" v-if="!editmode">
-                <label>{{ __('translate.Role') }} <span class="field_required">*</span></label>
-                <v-select @input="Selected_Role" placeholder="{{ __('translate.Choose_Role') }}"
+                <label>Roles<span class="field_required">*</span></label>
+                <v-select @input="Selected_Role" placeholder="Pilih Roles"
                   v-model="user.role_users_id" :reduce="(option) => option.value"
                   :options="roles.map(roles => ({label: roles.name, value: roles.id}))">
                 </v-select>
@@ -181,7 +181,7 @@
               </div>
 
               <div class="form-group col-md-6">
-                <label for="Avatar">{{ __('translate.Avatar') }}</label>
+                <label for="Avatar">Foto profile</label>
                 <input name="Avatar" @change="changeAvatar" type="file" class="form-control" id="Avatar">
                 <span class="error" v-if="errors && errors.avatar">
                   @{{ errors.avatar[0] }}
@@ -191,17 +191,17 @@
               <hr/>
 
               <div class="form-group col-md-12">
-                  <h5>{{ __('translate.Assigned_warehouses') }}</h5>
+                  <h5>Pilih Gudang</h5>
                   <div class="form-check form-check-inline w-15">
                     <input class="form-check-input" type="checkbox" id="is_all_warehouses" v-model="user.is_all_warehouses">
-                    <label class="form-check-label" for="is_all_warehouses">{{ __('translate.All_Warehouses') }}</label>
+                    <label class="form-check-label" for="is_all_warehouses">Semua Gudang</label>
                   </div>
                   <v-select
                       multiple
                       v-model="assigned_warehouses"
                       @input="Selected_Warehouse"
                       :reduce="label => label.value"
-                      placeholder="{{ __('translate.PleaseSelect') }}"
+                      placeholder="Silahkan pilih gudang"
                       :options="warehouses.map(warehouses => ({label: warehouses.name, value: warehouses.id}))">
                   </v-select>
                 </div>
@@ -212,7 +212,7 @@
               <div class="col-md-6">
                 <button type="submit" class="btn btn-primary" :disabled="SubmitProcessing">
                   <span v-if="SubmitProcessing" class="spinner-border spinner-border-sm" role="status"
-                    aria-hidden="true"></span> <i class="i-Yes me-2 font-weight-bold"></i> {{ __('translate.Submit') }}
+                    aria-hidden="true"></span> <i class="i-Yes me-2 font-weight-bold"></i> Submit
                 </button>
               </div>
             </div>

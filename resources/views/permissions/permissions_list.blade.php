@@ -6,7 +6,7 @@
 @endsection
 
 <div class="breadcrumb">
-  <h1>{{ __('translate.Permissions') }}</h1>
+  <h1>Izin</h1>
 </div>
 
 <div class="separator-breadcrumb border-top"></div>
@@ -24,9 +24,9 @@
           <table id="permissions_table" class="display table">
             <thead>
               <tr>
-                <th>{{ __('translate.Role_Name') }}</th>
-                <th>{{ __('translate.Description') }}</th>
-                <th>{{ __('translate.Action') }}</th>
+                <th>Nama Roles</th>
+                <th>Deskripsi</th>
+                <th>Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -36,7 +36,7 @@
                 <td>{{$role->description}}</td>
                 @can('group_permission')
                 @if($role->id === 1)
-                <td>{{ __('translate.Cannot_change_Default_Permissions') }}</td>
+                <td>Tidak dapat mengubah izin default</td>
                 @else
                 <td>
                   <a href="/user-management/permissions/{{$role->id}}/edit" class="cursor-pointer text-success ul-link-action"
@@ -84,14 +84,14 @@
              Remove_role(id) {
 
                 swal({
-                    title: '{{ __('translate.Are_you_sure') }}',
-                    text: '{{ __('translate.You_wont_be_able_to_revert_this') }}',
+                    title: 'Anda Yakin',
+                    text: 'Anda TIdak Akan Bisa Mengembalikan Tindakan ini!!',
                     type: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#0CC27E',
                     cancelButtonColor: '#FF586B',
-                    confirmButtonText: '{{ __('translate.Yes_delete_it') }}',
-                    cancelButtonText: '{{ __('translate.No_cancel') }}',
+                    confirmButtonText: 'Ya Hapus',
+                    cancelButtonText: 'Tidak batalkan',
                     confirmButtonClass: 'btn btn-primary me-5',
                     cancelButtonClass: 'btn btn-danger',
                     buttonsStyling: false
@@ -100,11 +100,11 @@
                             .delete("/user-management/permissions/" + id)
                             .then(() => {
                                 window.location.href = '/user-management/permissions'; 
-                                toastr.success('{{ __('translate.Deleted_in_successfully') }}');
+                                toastr.success('Berhasil Dihapus');
 
                             })
                             .catch(() => {
-                                toastr.error('{{ __('translate.There_was_something_wronge') }}');
+                                toastr.error('Terjadi Kesalahan');
                             });
                     });
                 },

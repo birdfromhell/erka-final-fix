@@ -9,7 +9,7 @@
 @endsection
 
 <div class="breadcrumb">
-  <h1>{{ __('translate.dashboard') }}</h1>
+  <h1>Dashboard</h1>
 </div>
 
 <div class="separator-breadcrumb border-top"></div>
@@ -21,17 +21,15 @@
         <div class="card p-4 d-flex flex-row align-items-center justify-content-between">
           <div>
             <p class="text-primary fw-semibold mb-1 font_17">
-            {{ __('translate.Good_Morning') }}, {{Auth::user()->username}}!
+            Selamat Datang, {{Auth::user()->username}}!
             </p>
-            <p class="p-0 m-0 text-gray-600 font_14">
-              {{ __('translate.what_happening_with_your_store') }}
-            </p>
+            
             <div class="dashboard_today_purchases">
               <h4 class="fw-semibold fs-4 mb-1">
                  {{$today_purchases}}
               </h4>
               <p class="p-0 m-0 text-gray-600 font_14">
-                {{ __('translate.Today_total_Purchases') }}
+                Total Pembelian Hari ini
               </p>
             </div>
             <div>
@@ -52,7 +50,7 @@
             <a href="/sale/sales" class="card_dashboard">
               <div class="card card-icon-big mb-4">
                 <p class="text-gray-600">
-                  {{ __('translate.Sales') }}
+                  Total Penjualan Hari ini
                 </p>
                 <h4 class="fw-semibold fs-4 mb-1">
                  {{$today_sales}}
@@ -80,7 +78,7 @@
             <a href="/sales-return/returns_sale" class="card_dashboard">
               <div class="card card-icon-big mb-4">
                 <p class="text-gray-600">
-                  {{ __('translate.SalesReturn') }}
+                  Pengembalian Pemnjualan
                 </p>
                 <h4 class="fw-semibold fs-4 mb-1">
                  {{$return_sales}}
@@ -94,7 +92,7 @@
             <a href="/purchase-return/returns_purchase" class="card_dashboard">
               <div class="card card-icon-big mb-4" >
                 <p class="text-gray-600">
-                  {{ __('translate.PurchasesReturn') }}
+                  Pengembalian Pembelian
                 </p>
                 <h4 class="fw-semibold fs-4 mb-1">
                  {{$return_purchases}}
@@ -112,7 +110,7 @@
           <div class="card-body">
             <div class="card-title">
               <h6 class="fw-semibold font_17">
-                {{ __('translate.This_Week_Sales_Purchases') }}
+                Penjualan Dan Pembelian Minggu Ini
               </h6>
             </div>
             <div id="echart_sales_purchase"></div>
@@ -125,7 +123,7 @@
           <div class="card-body">
             <div class="card-title">
               <h6 class="fw-semibold font_17">
-                {{ __('translate.Top_Selling_Products') }} ({{\Carbon\Carbon::now()->format('Y')}})
+                Produk terlaris ({{\Carbon\Carbon::now()->format('Y')}})
               </h6>
             </div>
             <div id="echart_Top_products"></div>
@@ -138,7 +136,7 @@
       <div class="col-md-8">
         <div class="card">
           <div class="card-header">
-            <h4>{{ __('translate.Recent_Sales') }}</h4>
+            <h4>Penjualan Terbaru</h4>
           </div>
           <div class="card-body">
             <div class="table-responsive">
@@ -146,10 +144,10 @@
                 <thead>
                   <tr>
                     <th>{{ __('translate.Ref') }}</th>
-                    <th>{{ __('translate.Customer') }}</th>
-                    <th>{{ __('translate.Total') }}</th>
-                    <th>{{ __('translate.Paid') }}</th>
-                    <th>{{ __('translate.Due') }}</th>
+                    <th>Pelanggan</th>
+                    <th>Total</th>
+                    <th>Dibayar</th>
+                    <th>Jatuh Tempo</th>
                   </tr>
                 </thead>
                 <tbody class="table_body_recent_sales">
@@ -173,7 +171,7 @@
       <div class="col-lg-4 col-md-12">
         <div class="card mb-4">
           <div class="card-body">
-            <div class="card-title">{{ __('translate.Top_Clients') }} ({{\Carbon\Carbon::now()->format('M, Y')}})</div>
+            <div class="card-title">Customer Teratas ({{\Carbon\Carbon::now()->format('M, Y')}})</div>
             <div id="echart_Top_Clients"></div>
           </div>
         </div>
@@ -286,7 +284,7 @@
                    borderRadius: 0,
                    orient: "horizontal",
                    x: "right",
-                   data: ["Sales", "Purchases"]
+                   data: ["Penjualan", "Pembelian"]
                },
                grid: {
                    left: '8px',
@@ -346,7 +344,7 @@
                }],
    
                series: [{
-                       name: 'Sales',
+                       name: 'Penjualan',
                        data: @json($sales_chart_data),
                        label: {
                            show: false,
@@ -367,7 +365,7 @@
                    },
    
                    {
-                       name: 'Purchases',
+                       name: 'Pembelian',
                        data: @json($purchases_chart_data),
                        label: {
                            show: false,

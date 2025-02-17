@@ -23,16 +23,16 @@
           <div class="row">
 
             <div class="col-md-6">
-              <label for="name">{{ __('translate.Role_Name') }} <span class="field_required">*</span></label>
+              <label for="name">Nama Roles<span class="field_required">*</span></label>
               <input type="text" required name="role_name" class="form-control" name="name" id="name"
-                placeholder="{{ __('translate.Enter_Role_Name') }}">
+                placeholder="Nama Roles">
 
             </div>
 
             <div class="col-md-6">
-              <label for="description">{{ __('translate.Description') }}</label>
+              <label for="description">Deskripsi</label>
               <input type="text" name="role_description" class="form-control" name="description" id="description"
-                placeholder="{{ __('translate.Enter_description') }}">
+                placeholder="Masukan Deskripsi">
             </div>
           </div>
 
@@ -43,14 +43,14 @@
                   <tbody>
 
                     <tr>
-                      <th>{{ __('translate.Dashboard') }}</th>
+                      <th>Dashboard</th>
                       <td>
                         <div class="pt-3">
 
                           <div class="form-check form-check-inline w-100">
                             <label class="checkbox checkbox-primary" for="dashboard">
                               <input type="checkbox" name="permissions[]" id="dashboard"
-                                value="dashboard"><span>{{ __('translate.Dashboard') }}</span><span class="checkmark"></span>
+                                value="dashboard"><span>Dashboard</span><span class="checkmark"></span>
                             </label>
                           </div>
 
@@ -59,31 +59,31 @@
                     </tr>
 
                     <tr>
-                      <th>{{ __('translate.Users') }}</th>
+                      <th>Pengguna</th>
                       <td>
                         <div class="pt-3">
                           <div class="form-check form-check-inline w-100">
                             <label class="checkbox checkbox-primary" for="user_view">
-                              <input type="checkbox" name="permissions[]" id="user_view" value="user_view"><span>{{ __('translate.View user') }}</span><span class="checkmark"></span>
+                              <input type="checkbox" name="permissions[]" id="user_view" value="user_view"><span>Lihat Daftar Pengguna</span><span class="checkmark"></span>
                             </label>
                           </div>
 
                           <div class="form-check form-check-inline w-100">
                             <label class="checkbox checkbox-primary" for="user_add">
-                              <input type="checkbox" name="permissions[]" id="user_add" value="user_add"><span>{{ __('translate.Add user') }}</span><span class="checkmark"></span>
+                              <input type="checkbox" name="permissions[]" id="user_add" value="user_add"><span>Tambahkan Pengguna</span><span class="checkmark"></span>
                             </label>
                           </div>
 
                           <div class="form-check form-check-inline w-100">
                             <label class="checkbox checkbox-primary" for="user_edit">
-                              <input type="checkbox" name="permissions[]" id="user_edit" value="user_edit"><span>{{ __('translate.Edit user') }}</span><span class="checkmark"></span>
+                              <input type="checkbox" name="permissions[]" id="user_edit" value="user_edit"><span>Edit Pengguna</span><span class="checkmark"></span>
                             </label>
                           </div>
 
                           <div class="form-check form-check-inline w-100">
                             <label class="checkbox checkbox-primary" for="user_delete">
                               <input type="checkbox" name="permissions[]" id="user_delete"
-                                value="user_delete"><span>{{ __('translate.Delete user') }}</span><span class="checkmark"></span>
+                                value="user_delete"><span>hapus Pengguna</span><span class="checkmark"></span>
                             </label>
                           </div>
 
@@ -92,13 +92,13 @@
                     </tr>
 
                     <tr>
-                        <th>{{ __('translate.Roles') }}</th>
+                        <th>Roles</th>
                         <td>
                           <div class="pt-3">
                             <div class="form-check form-check-inline w-100">
                               <label class="checkbox checkbox-primary" for="group_permission">
                                 <input type="checkbox" name="permissions[]" id="group_permission"
-                                  value="group_permission"><span>{{ __('translate.Roles') }}</span><span class="checkmark"></span>
+                                  value="group_permission"><span>Roles</span><span class="checkmark"></span>
                               </label>
                             </div>
   
@@ -107,7 +107,7 @@
                       </tr>
 
                     <tr>
-                      <th>{{ __('translate.Products') }}</th>
+                      <th>Produk</th>
                       <td>
                         <div class="pt-3">
 
@@ -115,35 +115,35 @@
                           <div class="form-check form-check-inline w-100">
                             <label class="checkbox checkbox-primary" for="products_view">
                               <input type="checkbox" name="permissions[]" id="products_view"
-                                value="products_view"><span>{{ __('translate.View Product') }}</span><span class="checkmark"></span>
+                                value="products_view"><span>Lihat Produk</span><span class="checkmark"></span>
                             </label>
                           </div>
 
                           <div class="form-check form-check-inline w-100">
                             <label class="checkbox checkbox-primary" for="products_add">
                               <input type="checkbox" name="permissions[]" id="products_add"
-                                value="products_add"><span>{{ __('translate.Add Product') }}</span><span class="checkmark"></span>
+                                value="products_add"><span>Tambah Produk</span><span class="checkmark"></span>
                             </label>
                           </div>
 
                           <div class="form-check form-check-inline w-100">
                             <label class="checkbox checkbox-primary" for="products_edit">
                               <input type="checkbox" name="permissions[]" id="products_edit"
-                                value="products_edit"><span>{{ __('translate.Edit Product') }}</span><span class="checkmark"></span>
+                                value="products_edit"><span>Edit Produk</span><span class="checkmark"></span>
                             </label>
                           </div>
 
                           <div class="form-check form-check-inline w-100">
                             <label class="checkbox checkbox-primary" for="products_delete">
                               <input type="checkbox" name="permissions[]" id="products_delete"
-                                value="products_delete"><span>{{ __('translate.Delete Product') }}</span><span class="checkmark"></span>
+                                value="products_delete"><span>Hapus Produk</span><span class="checkmark"></span>
                             </label>
                           </div>
 
                           <div class="form-check form-check-inline w-100">
                             <label class="checkbox checkbox-primary" for="print_labels">
                               <input type="checkbox" name="permissions[]" id="print_labels"
-                                value="print_labels"><span>{{ __('translate.Print Labels') }}</span><span class="checkmark"></span>
+                                value="print_labels"><span>Print Labels</span><span class="checkmark"></span>
                             </label>
                           </div>
 
@@ -152,13 +152,13 @@
                     </tr>
 
                     <tr>
-                      <th>{{ __('translate.Category') }}</th>
+                      <th>Kategori</th>
                       <td>
                         <div class="pt-3">
                           <div class="form-check form-check-inline w-100">
                             <label class="checkbox checkbox-primary" for="category">
                               <input type="checkbox" name="permissions[]" id="category"
-                                value="category"><span>{{ __('translate.Category') }}</span><span class="checkmark"></span>
+                                value="category"><span>Kategori</span><span class="checkmark"></span>
                             </label>
                           </div>
 
@@ -167,13 +167,13 @@
                     </tr>
 
                     <tr>
-                      <th>{{ __('translate.Brand') }}</th>
+                      <th>Merek</th>
                       <td>
                         <div class="pt-3">
                           <div class="form-check form-check-inline w-100">
                             <label class="checkbox checkbox-primary" for="brand">
                               <input type="checkbox" name="permissions[]" id="brand"
-                                value="brand"><span>{{ __('translate.Brand') }}</span><span class="checkmark"></span>
+                                value="brand"><span>Merek</span><span class="checkmark"></span>
                             </label>
                           </div>
 
@@ -181,12 +181,12 @@
                       </td>
 
                     <tr>
-                      <th>{{ __('translate.Unit') }}</th>
+                      <th>Unit</th>
                       <td>
                         <div class="pt-3">
                           <div class="form-check form-check-inline w-100">
                             <label class="checkbox checkbox-primary" for="unit">
-                              <input type="checkbox" name="permissions[]" id="unit" value="unit"><span>{{ __('translate.Unit') }}</span><span
+                              <input type="checkbox" name="permissions[]" id="unit" value="unit"><span>Unit</span><span
                                 class="checkmark"></span>
                             </label>
                           </div>
@@ -196,13 +196,13 @@
                     </tr>
 
                     <tr>
-                      <th>{{ __('translate.Warehouse') }}</th>
+                      <th>Gudang</th>
                       <td>
                         <div class="pt-3">
                           <div class="form-check form-check-inline w-100">
                             <label class="checkbox checkbox-primary" for="warehouse">
                               <input type="checkbox" name="permissions[]" id="warehouse"
-                                value="warehouse"><span>{{ __('translate.Warehouse') }}</span><span class="checkmark"></span>
+                                value="warehouse"><span>Gudang</span><span class="checkmark"></span>
                             </label>
                           </div>
 
@@ -211,43 +211,43 @@
                     </tr>
 
                     <tr>
-                      <th>{{ __('translate.Adjustments') }}</th>
+                      <th>Penyesuaian</th>
                       <td>
                         <div class="pt-3">
 
                           <label class="radio radio-primary">
                             <input type="radio" name="radio_option[adjustment_view]" value="adjustment_view_all">
-                            <span>{{ __('translate.View all Adjustments') }}</span><span class="checkmark"></span>
+                            <span>Lihat Semua Penyesuaian</span><span class="checkmark"></span>
                           </label>
 
                           <label class="radio radio-primary">
                             <input type="radio" name="radio_option[adjustment_view]" value="adjustment_view_own">
-                            <span>{{ __('translate.View own Adjustments') }}</span><span class="checkmark"></span>
+                            <span>Penyesuaian</span><span class="checkmark"></span>
                           </label>
 
                           <div class="form-check form-check-inline w-100">
                             <label class="checkbox checkbox-primary" for="adjustment_add">
                               <input type="checkbox" name="permissions[]" id="adjustment_add"
-                                value="adjustment_add"><span>{{ __('translate.Add Adjustment') }}</span><span class="checkmark"></span>
+                                value="adjustment_add"><span>Tambah Penyesuaian</span><span class="checkmark"></span>
                             </label>
                           </div>
 
                           <div class="form-check form-check-inline w-100">
                             <label class="checkbox checkbox-primary" for="adjustment_edit">
                               <input type="checkbox" name="permissions[]" id="adjustment_edit"
-                                value="adjustment_edit"><span>{{ __('translate.Edit Adjustment') }}</span><span class="checkmark"></span>
+                                value="adjustment_edit"><span>Edit Penyesuaian</span><span class="checkmark"></span>
                             </label>
                           </div>
                           <div class="form-check form-check-inline w-100">
                             <label class="checkbox checkbox-primary" for="adjustment_delete">
                               <input type="checkbox" name="permissions[]" id="adjustment_delete"
-                                value="adjustment_delete"><span>{{ __('translate.Delete Adjustment') }}</span><span class="checkmark"></span>
+                                value="adjustment_delete"><span>Hapus Penyesuaian</span><span class="checkmark"></span>
                             </label>
                           </div>
                           <div class="form-check form-check-inline w-100">
                             <label class="checkbox checkbox-primary" for="adjustment_details">
                               <input type="checkbox" name="permissions[]" id="adjustment_details"
-                                value="adjustment_details"><span>{{ __('translate.Adjustment details') }}</span><span class="checkmark"></span>
+                                value="adjustment_details"><span>Detail Penyesuaian</span><span class="checkmark"></span>
                             </label>
                           </div>
                         </div>
@@ -255,7 +255,7 @@
                     </tr>
 
                     <tr>
-                      <th>{{ __('translate.transfers') }}</th>
+                      <th>Transfer</th>
                       <td>
                         <div class="pt-3">
 
