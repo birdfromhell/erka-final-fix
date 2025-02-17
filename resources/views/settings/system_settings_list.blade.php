@@ -24,7 +24,7 @@
             <div class="row">
 
               <!-- Customer -->
-              <div class="form-group col-md-4">
+              {{-- <div class="form-group col-md-4">
                   <label>{{ __('translate.Default_Currency') }} <span class="field_required">*</span></label>
                   <v-select v-model="setting.currency_id" :reduce="label => label.value"
                     placeholder="{{ __('translate.Default_Currency') }}"
@@ -33,7 +33,7 @@
                   <span class="error" v-if="errors_settings && errors_settings.currency_id">
                       @{{ errors_settings.currency_id[0] }}
                     </span>
-              </div>
+              </div> --}}
 
               <div class="form-group col-md-4">
                 <label for="email">{{ __('translate.Default_Email') }} <span class="field_required">*</span></label>
@@ -44,13 +44,13 @@
                 </span>
               </div>
 
-              <div class="form-group col-md-4">
+              {{-- <div class="form-group col-md-4">
                 <label for="logo">{{ __('translate.Change_Logo') }} </label>
                 <input name="logo" @change="changeLogo" type="file" class="form-control" id="logo">
                 <span class="error" v-if="errors_settings && errors_settings.logo">
                   @{{ errors_settings.logo[0] }}
                 </span>
-              </div>
+              </div> --}}
 
 
               <div class="form-group col-md-4">
@@ -77,16 +77,16 @@
                   placeholder="{{ __('translate.pdf_footer') }}">
               </div>
 
-              <div class="form-group col-md-4">
+              {{-- <div class="form-group col-md-4">
                   <label for="invoice_footer">{{ __('translate.Developed_by') }} <span class="field_required">*</span></label>
                   <input type="text" v-model="setting.developed_by" class="form-control" id="developed_by"
                     placeholder="{{ __('translate.Developed_by') }}">
                   <span class="error" v-if="errors_settings && errors_settings.developed_by">
                     @{{ errors_settings.developed_by[0] }}
                   </span>
-              </div>
+              </div> --}}
 
-              <div class="form-group col-md-4">
+              {{-- <div class="form-group col-md-4">
                 <label for="app_name">{{ __('translate.App_name') }} <span class="field_required">*</span></label>
                 <input type="text" v-model="setting.app_name" class="form-control" id="app_name"
                   placeholder="{{ __('translate.App_name') }}">
@@ -102,9 +102,9 @@
                   <span class="error" v-if="errors_settings && errors_settings.footer">
                     @{{ errors_settings.footer[0] }}
                   </span>
-              </div>
+              </div> --}}
 
-              <div class="form-group col-md-4">
+              {{-- <div class="form-group col-md-4">
                   <label>{{ __('translate.Default_Language') }} <span class="field_required">*</span></label>
                   <v-select placeholder="{{ __('translate.Default_Language') }}"
                       v-model="setting.default_language" :reduce="(option) => option.value" :options="
@@ -117,7 +117,7 @@
                   <span class="error" v-if="errors_settings && errors_settings.default_language">
                       @{{ errors_settings.default_language[0] }}
                   </span>
-              </div>
+              </div> --}}
 
                 <!-- Customer -->
                 <div class="form-group col-md-4">
@@ -132,17 +132,17 @@
 
                <!-- Default Warehouse -->
                  <div class="form-group col-md-4">
-                    <label for="warehouse_id">{{ __('translate.Default_Warehouse') }} </label>
+                    <label for="warehouse_id">Gudang Default</label>
                     <v-select
                       v-model="setting.warehouse_id"
                       :reduce="label => label.value"
-                      placeholder="{{ __('translate.Default_Warehouse') }}"
+                      placeholder="Gudang Default"
                       :options="warehouses.map(warehouses => ({label: warehouses.name, value: warehouses.id}))"
                     >
                   </v-select>
                 </div>
 
-                  <!-- Time_Zone -->
+                  {{-- <!-- Time_Zone -->
                   <div class="form-group col-md-4">
                       <label for="timezone">{{ __('translate.Time_Zone') }} </label>
                        <v-select
@@ -150,9 +150,9 @@
                             v-model="setting.timezone" :reduce="label => label.value"
                             :options="zones_array.map(zones_array => ({label: zones_array.label, value: zones_array.zone}))">
                         </v-select>
-                  </div>
+                  </div> --}}
 
-                <div class="form-group col-md-4">
+                {{-- <div class="form-group col-md-4">
                     <label>{{ __('translate.Symbol_Placement') }} <span class="field_required">*</span></label>
                     <v-select placeholder="{{ __('translate.Symbol_Placement') }}"
                         v-model="setting.symbol_placement" :reduce="(option) => option.value" :options="
@@ -164,7 +164,7 @@
                     <span class="error" v-if="errors_settings && errors_settings.symbol_placement">
                         @{{ errors_settings.symbol_placement[0] }}
                     </span>
-                </div>
+                </div> --}}
 
               <div class="form-group col-md-12">
                 <label for="CompanyAdress">{{ __('translate.Company_Adress') }}
@@ -301,15 +301,15 @@
   </div>
 
   {{-- Backup Settings --}}
-  <div class="row mt-5">
-      <div class="col-md-12">
+  {{-- <div class="row mt-5"> --}}
+      {{-- <div class="col-md-12"> --}}
   
-        <div class="card">
-          <div class="card-header">
+        {{-- <div class="card"> --}}
+          {{-- <div class="card-header">
             <h4>{{ __('translate.Backup_Settings') }}</h4>
-          </div>
+          </div> --}}
           <!--begin::form-->
-          <div class="card-body">
+          {{-- <div class="card-body">
             <form @submit.prevent="Update_Backup_Settings()" enctype="multipart/form-data">
               <div class="row">
   
@@ -341,10 +341,10 @@
                 </div>
               </div>
             </form>
-          </div>
-        </div>
-      </div>
-    </div>
+          </div> --}}
+        {{-- </div> --}}
+      {{-- </div> --}}
+    {{-- </div> --}}
 
   {{-- Clear_Cache--}}
   <div class="row mt-5">

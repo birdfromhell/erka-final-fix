@@ -2,7 +2,7 @@
 Authentification
 *****************************/
 .login-page {
-  background: url(/images/photo-wide-4.jpg);
+  background-color: #dfdfdf;
 }
 
 .login-posly {
@@ -13,7 +13,7 @@ justify-content: center;
 margin: 0 auto;
 background-position: center;
 padding: 30px 12px;
-background-image: url(/images/photo-wide-4.jpg);
+background-color: #dfdfdf;
 background-size: cover;
 background-position: center center;
 background-repeat: no-repeat; }

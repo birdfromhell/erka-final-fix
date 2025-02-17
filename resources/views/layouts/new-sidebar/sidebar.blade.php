@@ -34,7 +34,7 @@
             <li class="">
                 <a href="/" class="nav-item @if($path == 'dashboard/admin') active @endif">
                     @include('components.icons.dashboard', ['class'=>'width_16'])
-                    <span class="item-name">{{ __('translate.dashboard') }}</span>
+                    <span class="item-name">Dashboard</span>
                 </a>
             </li>            
 
@@ -47,7 +47,7 @@
                         class="collapse-button"
                     >
                         @include('components.sidebar.collapse-navitem', [
-                            'title'=>__('translate.UserManagement'), 
+                            'title'=>"Management User", 
                             'icon'=>'components.icons.user'
                         ])
                     </div>
@@ -61,7 +61,7 @@
                                 <li class="">
                                     @include('components.sidebar.child-navitem', [
                                         'href'=>'/user-management/users', 
-                                        'title'=> __('translate.Users')
+                                        'title'=> "Pengguna"
                                     ])
                                 </li>
                             @endcan
@@ -69,7 +69,7 @@
                                 <li class="">
                                     @include('components.sidebar.child-navitem', [
                                         'href'=>'/user-management/permissions', 
-                                        'title'=> __('translate.Roles')
+                                        'title'=> "Roles"
                                     ])
                                 </li>
                             @endcan
@@ -87,7 +87,7 @@
                         class="collapse-button"
                     >
                         @include('components.sidebar.collapse-navitem', [
-                            'title'=>__('translate.People'), 
+                            'title'=>"Orang-orang", 
                             'icon'=>'components.icons.customers'
                         ])
                     </div>
@@ -101,7 +101,7 @@
                                 <li class="">
                                     @include('components.sidebar.child-navitem', [
                                         'href'=>'/people/clients', 
-                                        'title'=> __('translate.Customers')
+                                        'title'=>"Pelanggan"
                                     ])
                                 </li>
                             @endif
@@ -109,7 +109,7 @@
                                 <li class="">
                                     @include('components.sidebar.child-navitem', [
                                         'href'=>'/people/suppliers', 
-                                        'title'=> __('translate.Suppliers')
+                                        'title'=>"Supplier"
                                     ])
                                 </li>
                             @endif
@@ -128,7 +128,7 @@
                         class="collapse-button"
                     >
                         @include('components.sidebar.collapse-navitem', [
-                            'title'=>__('translate.Products'), 
+                            'title'=>"Produk", 
                             'icon'=>'components.icons.product'
                         ])
                     </div>
@@ -143,7 +143,7 @@
                                 <li>
                                     @include('components.sidebar.child-navitem', [
                                         'href'=>'/products/products', 
-                                        'title'=> __('translate.productsList')
+                                        'title'=>"Daftar Produk"
                                     ])
                                 </li>
                             @endcan
@@ -151,7 +151,7 @@
                                 <li>
                                     @include('components.sidebar.child-navitem', [
                                         'href'=>'/products/products/create', 
-                                        'title'=> __('translate.AddProduct')
+                                        'title'=>"Tambah Produk"
                                     ])
                                 </li>
                             @endcan
@@ -159,7 +159,7 @@
                                 <li>
                                     @include('components.sidebar.child-navitem', [
                                         'href'=>'/products/print_labels', 
-                                        'title'=> __('translate.Print_Labels')
+                                        'title'=>"Print Label"
                                     ])
                                 </li>
                             @endcan
@@ -167,7 +167,7 @@
                                 <li>
                                     @include('components.sidebar.child-navitem', [
                                         'href'=>'/products/categories', 
-                                        'title'=> __('translate.Categories')
+                                        'title'=> "Kategori"
                                     ])
                                 </li>
                             @endcan
@@ -175,7 +175,7 @@
                                 <li>
                                     @include('components.sidebar.child-navitem', [
                                         'href'=>'/products/units', 
-                                        'title'=> __('translate.Units')
+                                        'title'=> "Unit"
                                     ])
                                 </li>
                             @endcan
@@ -183,7 +183,7 @@
                                 <li>
                                     @include('components.sidebar.child-navitem', [
                                         'href'=>'/products/brands', 
-                                        'title'=> __('translate.Brand')
+                                        'title'=> "Merek"
                                     ])
                                 </li>
                             @endcan
@@ -191,7 +191,7 @@
                                 <li>
                                     @include('components.sidebar.child-navitem', [
                                         'href'=>'/products/warehouses', 
-                                        'title'=> __('translate.Warehouses')
+                                        'title'=> "Gudang"
                                     ])
                                 </li>
                             @endcan
@@ -209,7 +209,7 @@
                         class="collapse-button"
                     >
                         @include('components.sidebar.collapse-navitem', [
-                            'title'=>__('translate.StockAdjustement'), 
+                            'title'=>"Penyesuaian Stok", 
                             'icon'=>'components.icons.store'
                         ])
                     </div>
@@ -224,7 +224,7 @@
                                 <li>
                                     @include('components.sidebar.child-navitem', [
                                         'href'=>'/adjustment/adjustments', 
-                                        'title'=> __('translate.ListAdjustments')
+                                        'title'=> "Daftar Penyesuaian Stok"
                                     ])
                                 </li>
                             @endif
@@ -232,7 +232,7 @@
                                 <li>
                                     @include('components.sidebar.child-navitem', [
                                         'href'=>'/adjustment/adjustments/create', 
-                                        'title'=> __('translate.CreateAdjustment')
+                                        'title'=> "Tambah Penyesuaian Stok"
                                     ])
                                 </li>
                             @endcan
@@ -250,7 +250,7 @@
                         class="collapse-button"
                     >
                         @include('components.sidebar.collapse-navitem', [
-                            'title'=>__('translate.StockTransfers'), 
+                            'title'=>"Transfer Stok",
                             'icon'=>'components.icons.refund'
                         ])
                     </div>
@@ -264,7 +264,7 @@
                                 <li>
                                     @include('components.sidebar.child-navitem', [
                                         'href'=>'/transfer/transfers', 
-                                        'title'=> __('translate.ListTransfers')
+                                        'title'=>"Daftar Transfer Stok"
                                     ])
                                 </li>
                             @endif
@@ -272,7 +272,7 @@
                                 <li>
                                     @include('components.sidebar.child-navitem', [
                                         'href'=>'/transfer/transfers/create', 
-                                        'title'=> __('translate.CreateTransfer')
+                                        'title'=>"Tambah Transfer Stok"
                                     ])
                                 </li>
                             @endcan
@@ -330,7 +330,7 @@
                         class="collapse-button"
                     >
                         @include('components.sidebar.collapse-navitem', [
-                            'title'=>__('translate.Purchases'), 
+                            'title'=>"Pembelian",
                             'icon'=>'components.icons.cart'
                         ])
                     </div>
@@ -344,7 +344,7 @@
                                 <li>
                                     @include('components.sidebar.child-navitem', [
                                         'href'=>'/purchase/purchases', 
-                                        'title'=> __('translate.ListPurchases')
+                                        'title'=> "daftar pembelian"
                                     ])
                                 </li>
                             @endif
@@ -352,7 +352,7 @@
                                 <li>
                                     @include('components.sidebar.child-navitem', [
                                         'href'=>'/purchase/purchases/create', 
-                                        'title'=> __('translate.AddPurchase')
+                                        'title'=> "Tambah Pembelian"
                                     ])
                                 </li>
                             @endcan
@@ -370,7 +370,7 @@
                         class="collapse-button"
                     >
                         @include('components.sidebar.collapse-navitem', [
-                            'title'=>__('translate.Sales'), 
+                            'title'=>"Penjualan",
                             'icon'=>'components.icons.add-to-cart'
                         ])
                     </div>
@@ -384,7 +384,7 @@
                                 <li>
                                     @include('components.sidebar.child-navitem', [
                                         'href'=>'/sale/sales', 
-                                        'title'=> __('translate.ListSales')
+                                        'title'=> "Dafar Penjualan"
                                     ])
                                 </li>
                             @endif
@@ -392,7 +392,7 @@
                                 <li>
                                     @include('components.sidebar.child-navitem', [
                                         'href'=>'/sale/sales/create', 
-                                        'title'=> __('translate.AddSale')
+                                        'title'=> "Tambah Penjualan"
                                     ])
                                 </li>
                             @endcan
@@ -407,7 +407,7 @@
             <li class="">
                 <a href="/sales-return/returns_sale" class="nav-item @if($path == 'sales-return/returns_sale') active @endif">
                     @include('components.icons.sales-return', ['class'=>'width_16'])
-                    <span class="item-name">{{ __('translate.SalesReturn') }}</span>
+                    <span class="item-name">Purchase return</span>
                 </a>
             </li>  
 
@@ -419,7 +419,7 @@
             <li class="">
                 <a href="/purchase-return/returns_purchase" class="nav-item @if($path == 'purchase-return/returns_purchase') active @endif">
                     @include('components.icons.purchases-return', ['class'=>'width_16'])
-                    <span class="item-name">{{ __('translate.PurchasesReturn') }}</span>
+                    <span class="item-name">Sales Return</span>
                 </a>
             </li>  
             @endif
@@ -438,7 +438,7 @@
                         class="collapse-button"
                     >
                         @include('components.sidebar.collapse-navitem', [
-                            'title'=>__('translate.Accounting'), 
+                            'title'=>"Akuntansi", 
                             'icon'=>'components.icons.account'
                         ])
                     </div>
@@ -452,7 +452,7 @@
                                 <li>
                                     @include('components.sidebar.child-navitem', [
                                         'href'=>'/accounting/account', 
-                                        'title'=> __('translate.Account')
+                                        'title'=> "Akun"
                                     ])
                                 </li>
                             @endcan
@@ -460,7 +460,7 @@
                                 <li>
                                     @include('components.sidebar.child-navitem', [
                                         'href'=>'/accounting/deposit', 
-                                        'title'=> __('translate.Deposit')
+                                        'title'=> "Deposit"
                                     ])
                                 </li>
                             @endcan
@@ -468,7 +468,7 @@
                                 <li>
                                     @include('components.sidebar.child-navitem', [
                                         'href'=>'/accounting/expense', 
-                                        'title'=> __('translate.Expense')
+                                        'title'=>"Pengeluaran"
                                     ])
                                 </li>
                             @endcan
@@ -476,7 +476,7 @@
                                 <li>
                                     @include('components.sidebar.child-navitem', [
                                         'href'=>'/accounting/expense_category', 
-                                        'title'=> __('translate.Expense_Category')
+                                        'title'=> "Kategori Pengeluaran"
                                     ])
                                 </li>
                             @endcan
@@ -484,7 +484,7 @@
                                 <li>
                                     @include('components.sidebar.child-navitem', [
                                         'href'=>'/accounting/deposit_category', 
-                                        'title'=> __('translate.Deposit_Category')
+                                        'title'=> "Kategori Deposit"
                                     ])
                                 </li>
                             @endcan
@@ -492,7 +492,7 @@
                                 <li>
                                     @include('components.sidebar.child-navitem', [
                                         'href'=>'/accounting/payment_methods', 
-                                        'title'=> __('translate.Payment_Methods')
+                                        'title'=> "Metode Pembayaran"
                                     ])
                                 </li>
                             @endcan
@@ -511,7 +511,7 @@
                         class="collapse-button"
                     >
                         @include('components.sidebar.collapse-navitem', [
-                            'title'=>__('translate.Settings'), 
+                            'title'=>"Pengaturan",
                             'icon'=>'components.icons.settings'
                         ])
                     </div>
@@ -525,51 +525,11 @@
                                 <li>
                                     @include('components.sidebar.child-navitem', [
                                         'href'=>'/settings/system_settings', 
-                                        'title'=> __('translate.System_Settings')
+                                        'title'=> "Pengaturan System"
                                     ])
                                 </li>
                             @endcan
 
-                            @can('pos_settings')
-                                <li>
-                                    @include('components.sidebar.child-navitem', [
-                                        'href'=>'/settings/pos_settings', 
-                                        'title'=> __('translate.Pos_Receipt_Settings')
-                                    ])
-                                </li>
-                            @endcan
-
-                            @can('sms_settings')
-                                <li>
-                                    @include('components.sidebar.child-navitem', [
-                                        'href'=>'/settings/sms_settings', 
-                                        'title'=> __('translate.sms_settings')
-                                    ])
-                                </li>
-                            @endcan
-                            @can('notification_template')
-                                <li>
-                                    @include('components.sidebar.child-navitem', [
-                                        'href'=>'/settings/sms_template', 
-                                        'title'=> __('translate.sms_template')
-                                    ])
-                                </li>
-
-                                <li>
-                                    @include('components.sidebar.child-navitem', [
-                                        'href'=>'/settings/emails_template', 
-                                        'title'=> __('translate.emails_template')
-                                    ])
-                                </li>
-                            @endcan
-                            @can('currency')
-                                <li>
-                                    @include('components.sidebar.child-navitem', [
-                                        'href'=>'/settings/currency', 
-                                        'title'=> __('translate.Currency')
-                                    ])
-                                </li>
-                            @endcan
                             @can('backup')
                                 <li>
                                     @include('components.sidebar.child-navitem', [
@@ -598,7 +558,7 @@
                         class="collapse-button"
                     >
                         @include('components.sidebar.collapse-navitem', [
-                            'title'=>__('translate.Reports'), 
+                            'title'=>"Laporan", 
                             'icon'=>'components.icons.reports'
                         ])
                     </div>
