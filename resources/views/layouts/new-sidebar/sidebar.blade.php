@@ -396,6 +396,12 @@
                                     ])
                                 </li>
                             @endcan
+                            <li>
+                                @include('components.sidebar.child-navitem', [
+                                    'href'=>'/sale/shipments', 
+                                    'title'=> "Pengiriman"
+                                ])
+                            </li>
                         </ul>
                     </div>
                 </li> 
