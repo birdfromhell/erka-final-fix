@@ -10,7 +10,7 @@
 
         <!-- CSRF Token -->
         <meta name="csrf-token" content="{{ csrf_token() }}">
-        <title>Posly - POS with Inventory Management</title>
+        <title>Erka Solution Grup</title>
         <link href="https://fonts.googleapis.com/css?family=Nunito:300,400,400i,600,700,800,900" rel="stylesheet">
         @yield('before-css')
         {{-- theme css --}}

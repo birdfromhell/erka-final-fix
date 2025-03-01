@@ -343,8 +343,8 @@ if ($ready === true) {
                 Route::post("payment_methods/delete/by_selection", "PaymentMethodController@delete_by_selection");
             });
 
-            Route::prefix('shipment')->middleware(['auth', 'XSS'])->group(function () {
-                Route::get('shipments', 'ShipmentController@index')->name('shipments.index');
+            Route::prefix('sale/shipment')->middleware(['auth', 'XSS'])->group(function () {
+                Route::get('', 'ShipmentController@index')->name('shipments.index');
                 Route::get('shipments/create', 'ShipmentController@create')->name('shipments.create');
                 Route::post('shipments', 'ShipmentController@store')->name('shipments.store');
                 Route::get('shipments/{id}/edit', 'ShipmentController@edit')->name('shipments.edit');

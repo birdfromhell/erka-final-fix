@@ -398,7 +398,7 @@
                             @endcan
                             <li>
                                 @include('components.sidebar.child-navitem', [
-                                    'href'=>'/sale/shipments', 
+                                    'href'=>'/sale/shipment', 
                                     'title'=> "Pengiriman"
                                 ])
                             </li>
